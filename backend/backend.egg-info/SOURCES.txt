@@ -1,5 +1,9 @@
 pyproject.toml
 app/main.py
+app/api/routes/auth.py
+app/connectors/databases.py
+app/connectors/neo4j.py
+app/connectors/postgres.py
 backend.egg-info/PKG-INFO
 backend.egg-info/SOURCES.txt
 backend.egg-info/dependency_links.txt
