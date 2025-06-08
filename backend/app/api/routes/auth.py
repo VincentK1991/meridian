@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 from app.api.services import auth
 from app.api.services.auth import get_current_user
+from app.api.types.custom_types import UUIDStr
 from app.connectors.databases import get_postgres
 from app.oauth.google import google_profile_oauth
 
@@ -13,6 +14,7 @@ class GoogleCallback(BaseModel):
     state: str
 
 class CurrentUserResponse(BaseModel):
+    user_id: UUIDStr
     email: str
     name: str
 
@@ -82,7 +84,9 @@ async def google_auth_callback(
     await auth.set_response_cookies(response, access_token, refresh_token)
 
     return CurrentUserResponse(
-        email=user.email, name=user.name
+        user_id=user.user_id,
+        email=user.email,
+        name=user.name
     )
 
 
@@ -103,7 +107,9 @@ async def refresh_me(current_user=Depends(get_current_user)):
         dict: Current user's information
     """
     current_user_package = CurrentUserResponse(
-        email=current_user.email, name=current_user.name
+        user_id=current_user.user_id,
+        email=current_user.email,
+        name=current_user.name
     )
     return current_user_package
 

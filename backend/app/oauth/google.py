@@ -31,7 +31,8 @@ class GoogleUserInfo(BaseModel):
 
 
 class GoogleOAuth(BaseOAuth):
-    def __init__(self, config: GoogleConfig):
+    def __init__(self, config: GoogleConfig, integration_type: Integration):
+        super().__init__(integration_type)
         self.config = config
         self.client_config = {
             "web": {
@@ -48,6 +49,7 @@ class GoogleOAuth(BaseOAuth):
             scopes=self.config.scopes,
             redirect_uri=self.config.redirect_uri,
         )
+        self.integration_type = integration_type
 
     def get_auth_url(self):
         authorization_url, state = self.flow.authorization_url(
@@ -114,7 +116,7 @@ class GoogleOAuth(BaseOAuth):
         try:
             # Prepare OAuth integration data as JSON
             oauth_integration = OAuthIntegration(
-                integration=Integration.IDENTITY,
+                integration=self.integration_type,
                 scope=user_info.scopes,
                 access_token=user_info.access_token,
                 refresh_token=user_info.refresh_token,
@@ -175,6 +177,54 @@ class GoogleOAuth(BaseOAuth):
         except Exception as e:
             raise Exception(f"Failed to store user info in database: {str(e)}")
 
+    def refresh_access_token(self, refresh_token: str):
+        """
+        Refresh the access token using the refresh token
+
+        Args:
+            refresh_token: The refresh token from the initial OAuth flow
+            client_id: Google OAuth client ID
+            client_secret: Google OAuth client secret
+
+        Returns:
+            dict: New access token and related information
+        """
+        import requests
+
+        token_url = "https://oauth2.googleapis.com/token"
+
+        payload = {
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
+            "client_id": self.config.client_id,
+            "client_secret": self.config.client_secret,
+        }
+
+        try:
+            response = requests.post(token_url, data=payload)
+            response.raise_for_status()
+
+            token_data = response.json()
+
+            return {
+                "access_token": token_data.get("access_token"),
+                "expires_in": token_data.get("expires_in"),
+                "token_type": token_data.get("token_type", "Bearer"),
+                # Note: Google may or may not return a new refresh token
+                "refresh_token": token_data.get("refresh_token", refresh_token),
+            }
+
+        except requests.RequestException as e:
+            raise Exception(f"Failed to refresh Google access token: {str(e)}")
+
+    def store_access_token(self, access_token: str):
+        """Store the access token"""
+        NotImplementedError("Not implemented")
+
+    def store_refresh_token(self, refresh_token: str):
+        """Store the refresh token"""
+        NotImplementedError("Not implemented")
+
 
 google_profile_oauth = GoogleOAuth(
     GoogleConfig(
@@ -186,5 +236,6 @@ google_profile_oauth = GoogleOAuth(
             "https://www.googleapis.com/auth/userinfo.email",
             "https://www.googleapis.com/auth/userinfo.profile",
         ],
-    )
+    ),
+    Integration.IDENTITY,
 )

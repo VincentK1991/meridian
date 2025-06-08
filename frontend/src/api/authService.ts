@@ -43,6 +43,7 @@ export const authApi = {
   // Get current user (protected route)
   getCurrentUser: async (): Promise<User> => {
     const response = await authApiClient.get('/me');
+    localStorage.setItem('user-profile', JSON.stringify(response.data));
     return response.data;
   },
 
