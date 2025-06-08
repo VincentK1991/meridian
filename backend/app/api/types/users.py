@@ -9,6 +9,9 @@ from .mixins import JSONParsingMixin, TimestampMixin
 
 class Integration(Enum):
     IDENTITY = "identity"
+    GOOGLE = "google"
+    GITHUB = "github"
+    MICROSOFT = "microsoft"
 
 
 class OAuthIntegration(BaseModel, TimestampMixin):
@@ -21,7 +24,7 @@ class OAuthIntegration(BaseModel, TimestampMixin):
 
 class User(BaseModel, TimestampMixin, JSONParsingMixin):
     user_id: UUIDStr  # Custom type: validates UUID, stores as string
-    oauth_integration: OAuthIntegration | None = None
+    oauth_integration: list[OAuthIntegration] | None = None  # List of integrations
     email: str
     name: str
 

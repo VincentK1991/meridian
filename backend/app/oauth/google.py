@@ -1,11 +1,11 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from google.auth.transport import requests
 from google.oauth2 import id_token
 from google_auth_oauthlib.flow import Flow
 from pydantic import BaseModel
 
-from app.api.types.users import User
+from app.api.types.users import Integration, OAuthIntegration, User
 from app.config import settings
 from app.oauth.base_oauth import BaseOAuth
 
@@ -113,17 +113,19 @@ class GoogleOAuth(BaseOAuth):
     async def store_user_info(self, user_info: GoogleUserInfo, db):
         try:
             # Prepare OAuth integration data as JSON
-            oauth_integration = {
-                "integration": "identity",
-                "scope": user_info.scopes,
-                "access_token": user_info.access_token,
-                "refresh_token": user_info.refresh_token,
-                "expires_at": user_info.expires_at.isoformat()
+            oauth_integration = OAuthIntegration(
+                integration=Integration.IDENTITY,
+                scope=user_info.scopes,
+                access_token=user_info.access_token,
+                refresh_token=user_info.refresh_token,
+                expires_at=user_info.expires_at
                 if isinstance(user_info.expires_at, datetime)
-                else user_info.expires_at,
-                "created_at": datetime.now().isoformat(),
-                "updated_at": datetime.now().isoformat(),
-            }
+                else datetime.fromisoformat(user_info.expires_at)
+                if user_info.expires_at
+                else None,
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
+            )
 
             # Check if user already exists
             user = await db.fetchrow(
@@ -131,20 +133,31 @@ class GoogleOAuth(BaseOAuth):
             )
 
             if user:
-                # Update existing user - asyncpg requires JSON as string
+                # Get existing integrations
+                user = User(**user)
+                existing_integrations = user.oauth_integration
+
+                updated_integrations = self.deduplicate_integrations(
+                    existing_integrations + [oauth_integration]
+                )
+
+                # Update existing user with new integrations list
                 updated_user = await db.fetchrow(
                     """
                     UPDATE users
-                    SET oauth_integration = $1, updated_at = CURRENT_TIMESTAMP
+                    SET oauth_integration = $1, updated_at = CURRENT_TIMESTAMP, name = $3
                     WHERE email = $2
                     RETURNING *
                 """,
-                    oauth_integration,
+                    [
+                        i.model_dump(mode="json") for i in updated_integrations
+                    ],  # Use mode='json' for datetime serialization
                     user_info.email,
+                    user_info.name,  # Update name from Google
                 )
                 return User(**updated_user)
             else:
-                # Insert new user - asyncpg requires JSON as string
+                # Insert new user with Google integration as first item in list
                 new_user = await db.fetchrow(
                     """
                     INSERT INTO users (email, oauth_integration, name, created_at, updated_at)
@@ -152,7 +165,9 @@ class GoogleOAuth(BaseOAuth):
                     RETURNING *
                 """,
                     user_info.email,
-                    oauth_integration,  # asyncpg expects JSON as string
+                    [
+                        oauth_integration.model_dump(mode="json")
+                    ],  # Use mode='json' for datetime serialization
                     user_info.name,
                 )
                 return User(**new_user)
