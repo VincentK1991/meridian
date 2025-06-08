@@ -44,7 +44,7 @@ class UUIDStr(str):
                 uuid.UUID(value)
                 return value
             except ValueError:
-                raise ValueError(f"Invalid UUID format: {value}")
+                raise ValueError(f"Invalid UUID format: {value}") from None
         else:
             raise ValueError(f"Expected UUID or string, got {type(value)}")
 

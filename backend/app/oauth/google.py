@@ -110,7 +110,7 @@ class GoogleOAuth(BaseOAuth):
             )
 
         except Exception as e:
-            raise Exception(f"Failed to get user info from Google: {str(e)}")
+            raise Exception(f"Failed to get user info from Google: {str(e)}") from e
 
     async def store_user_info(self, user_info: GoogleUserInfo, db):
         try:
@@ -175,7 +175,7 @@ class GoogleOAuth(BaseOAuth):
                 return User(**new_user)
 
         except Exception as e:
-            raise Exception(f"Failed to store user info in database: {str(e)}")
+            raise Exception(f"Failed to store user info in database: {str(e)}") from e
 
     def refresh_access_token(self, refresh_token: str):
         """
@@ -215,7 +215,7 @@ class GoogleOAuth(BaseOAuth):
             }
 
         except requests.RequestException as e:
-            raise Exception(f"Failed to refresh Google access token: {str(e)}")
+            raise Exception(f"Failed to refresh Google access token: {str(e)}") from e
 
     def store_access_token(self, access_token: str):
         """Store the access token"""

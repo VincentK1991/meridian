@@ -81,10 +81,10 @@ class UUIDStringMixin:
                     # Validate that it's a valid UUID string
                     uuid.UUID(v)
                     return v  # Return valid UUID string as-is
-                except ValueError:
+                except ValueError as err:
                     raise ValueError(
                         f"Invalid UUID format for field '{field_name}': {v}"
-                    )
+                    ) from err
 
         return v
 
