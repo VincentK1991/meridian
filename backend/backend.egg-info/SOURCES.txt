@@ -1,9 +1,17 @@
 pyproject.toml
+app/config.py
 app/main.py
+app/api/middlewares/cors_middleware.py
 app/api/routes/auth.py
+app/api/services/auth.py
+app/api/types/mixins.py
+app/api/types/sessions.py
+app/api/types/users.py
 app/connectors/databases.py
 app/connectors/neo4j.py
 app/connectors/postgres.py
+app/oauth/base_oauth.py
+app/oauth/google.py
 backend.egg-info/PKG-INFO
 backend.egg-info/SOURCES.txt
 backend.egg-info/dependency_links.txt

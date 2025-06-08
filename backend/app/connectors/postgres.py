@@ -1,10 +1,13 @@
-from typing import AsyncGenerator
-import asyncpg
-from contextlib import asynccontextmanager
+import json
 import os
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+
+import asyncpg
 from dotenv import load_dotenv
 
 load_dotenv()
+
 
 class PostgreSQLConnector:
     _pool = None
@@ -19,9 +22,17 @@ class PostgreSQLConnector:
                 password=os.getenv("POSTGRES_PASSWORD", "password123"),
                 database=os.getenv("POSTGRES_DB", "postgres"),
                 min_size=5,
-                max_size=20
+                max_size=20,
+                init=cls._init_connection,
             )
         return cls._pool
+
+    @classmethod
+    async def _init_connection(cls, connection):
+        """Initialize each connection with JSON codec support"""
+        await connection.set_type_codec(
+            "json", encoder=json.dumps, decoder=json.loads, schema="pg_catalog"
+        )
 
     @classmethod
     async def close_pool(cls):
@@ -35,7 +46,7 @@ class PostgreSQLConnector:
         """
         Async context manager that yields a PostgreSQL connection from the pool.
         The connection is automatically returned to the pool when the context exits.
-        
+
         Usage:
         ```python
         async with PostgreSQLConnector.get_connection() as conn:

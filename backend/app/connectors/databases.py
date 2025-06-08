@@ -1,16 +1,15 @@
-from typing import AsyncGenerator
-import asyncpg
-from contextlib import asynccontextmanager
-import os
 from dotenv import load_dotenv
+
 from app.connectors.postgres import PostgreSQLConnector
+
 load_dotenv()
+
 
 async def get_postgres():
     """
     FastAPI dependency that yields a PostgreSQL connection.
     The connection is automatically returned to the pool when the request is complete.
-    
+
     Usage in FastAPI routes:
     ```python
     @router.get("/users")

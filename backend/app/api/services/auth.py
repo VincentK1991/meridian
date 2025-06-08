@@ -1,0 +1,145 @@
+from datetime import UTC, datetime, timedelta
+
+from fastapi import Depends, HTTPException, Request, Response
+from jose import jwt
+
+from app.api.types.users import User
+from app.config import settings
+from app.connectors.databases import get_postgres
+
+
+async def get_current_user(
+    request: Request, response: Response, db=Depends(get_postgres)
+):
+    """
+    Dependency function to validate JWT token and retrieve current user.
+
+    Args:
+        token (str): JWT token from request
+        db: MongoDB database connection
+
+    Returns:
+        dict: User document from database
+
+    Raises:
+        HTTPException: If token is invalid or user not found
+
+    Used for protected endpoints:
+    1. Frontend includes JWT token in request header
+    2. This function:
+       a. Extracts token from request
+       b. Verifies token signature using our secret key
+       c. Extracts user email from token
+       d. Looks up user in MongoDB
+    3. If anything fails, user isn't authenticated
+    4. Returns user data if successful
+    """
+    access_token = request.cookies.get("access_token")
+    refresh_token = request.cookies.get("refresh_token")
+    if not access_token or not refresh_token:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    try:
+        access_token_payload = await verify_token(access_token)
+        user_id: str = access_token_payload.get("user_id")
+
+        # Check if access token is expired
+        exp = access_token_payload.get("exp")
+        if exp and datetime.fromtimestamp(exp, tz=UTC) > datetime.now(UTC):
+            # Access token is still valid, proceed to get user
+            user = await db.fetchrow("SELECT * FROM users WHERE user_id = $1", user_id)
+            if not user:
+                raise HTTPException(status_code=401, detail="Unauthorized")
+            return User(**dict(user))
+
+    except jwt.JWTError:
+        # Access token is invalid or expired, check refresh token
+        pass
+
+    # Access token expired or invalid, try refresh token
+    try:
+        refresh_token_payload = await verify_token(refresh_token)
+        email: str = refresh_token_payload.get("email")
+        user_id: str = refresh_token_payload.get("user_id")
+
+        # Check if refresh token is expired
+        exp = refresh_token_payload.get("exp")
+        if exp and datetime.fromtimestamp(exp, tz=UTC) <= datetime.now(UTC):
+            # Refresh token is also expired
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        # Refresh token is valid, get user and create new access token
+        user = await db.fetchrow("SELECT * FROM users WHERE email = $1", email)
+        if not user:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        user_obj = User(**dict(user))
+
+        # Create new access token (this would typically be set in response cookies)
+        new_access_token = await create_access_token(user_obj)
+        await set_response_cookies(response, new_access_token, refresh_token)
+
+        return user_obj, new_access_token
+
+    except jwt.JWTError:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+async def create_access_token(user: User):
+    access_token_payload = {
+        "user_id": user.user_id,
+        "email": user.email,
+        "exp": datetime.now(UTC)
+        + timedelta(minutes=settings.jwt_access_token_expire_minutes),
+    }
+    access_token = jwt.encode(
+        access_token_payload,
+        settings.jwt_secret_key,
+        algorithm=settings.jwt_algorithm,
+    )
+    return access_token
+
+
+async def create_refresh_token(user: User):
+    refresh_token_payload = {
+        "user_id": user.user_id,
+        "email": user.email,
+        "exp": datetime.now(UTC)
+        + timedelta(days=settings.jwt_refresh_token_expire_days),
+    }
+    refresh_token = jwt.encode(
+        refresh_token_payload,
+        settings.jwt_secret_key,
+        algorithm=settings.jwt_algorithm,
+    )
+    return refresh_token
+
+
+async def verify_token(token: str):
+    try:
+        payload = jwt.decode(
+            token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm]
+        )
+        return payload
+    except jwt.JWTError:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+async def set_response_cookies(
+    response: Response, access_token: str, refresh_token: str
+):
+    response.set_cookie(
+        "access_token",
+        access_token,
+        httponly=True,
+        secure=True,
+        max_age=300,
+        samesite="lax",
+    )
+    response.set_cookie(
+        "refresh_token",
+        refresh_token,
+        httponly=True,
+        secure=True,
+        max_age=604800,
+        samesite="lax",
+    )
