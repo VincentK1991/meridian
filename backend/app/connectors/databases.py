@@ -1,3 +1,6 @@
+from collections.abc import AsyncGenerator
+
+import asyncpg
 from dotenv import load_dotenv
 
 from app.connectors.postgres import PostgreSQLConnector
@@ -5,7 +8,7 @@ from app.connectors.postgres import PostgreSQLConnector
 load_dotenv()
 
 
-async def get_postgres():
+async def get_postgres() -> AsyncGenerator[asyncpg.Connection, None]:
     """
     FastAPI dependency that yields a PostgreSQL connection.
     The connection is automatically returned to the pool when the request is complete.

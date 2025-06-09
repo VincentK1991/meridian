@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '../api/authService';
+import { sessionApi } from '../api/sessionService';
 import { useNavigate } from 'react-router-dom';
 
 // Query keys
@@ -10,13 +11,25 @@ export const AUTH_QUERY_KEYS = {
 
 // Hook to get current user (protected)
 export const useCurrentUser = () => {
+  // Get user data from localStorage as initial data
+  const getUserFromStorage = () => {
+    try {
+      const storedUser = localStorage.getItem('user-profile');
+      return storedUser ? JSON.parse(storedUser) : undefined;
+    } catch (error) {
+      console.error('Error parsing user from localStorage:', error);
+      return undefined;
+    }
+  };
+
   return useQuery({
     queryKey: AUTH_QUERY_KEYS.currentUser,
     queryFn: authApi.getCurrentUser,
     retry: false,
-    staleTime: 5 * 60 * 1000, // 2 minutes (shorter for better session validation)
+    staleTime: 1 * 60 * 1000, // 5 minutes (shorter for better session validation)
     refetchOnWindowFocus: true, // Refetch when user returns to tab
     refetchOnMount: true, // Always check on component mount
+    // initialData: getUserFromStorage(), // Use localStorage data as initial data
   });
 };
 
@@ -60,9 +73,23 @@ export const useLogout = () => {
 
   return useMutation({
     mutationFn: authApi.logout,
-    onSuccess: () => {
+    onSuccess: (_, __, context) => {
+      // Get user data before clearing to clean up sessions
+      const userData = queryClient.getQueryData(AUTH_QUERY_KEYS.currentUser) as any;
+      const userId = userData?.user_id || userData?.id;
+
       // Clear all auth-related cache
       queryClient.removeQueries({ queryKey: ['auth'] });
+      queryClient.removeQueries({ queryKey: ['sessions'] });
+
+      // Clear user data from localStorage
+      localStorage.removeItem('user-profile');
+
+      // Clear sessions from localStorage if we have userId
+      if (userId) {
+        sessionApi.clearSessionsFromStorage(userId);
+      }
+
       // Navigate to signin
       navigate('/signin');
     },

@@ -1,5 +1,5 @@
 import { createApiClient } from './baseApiClient';
-import type { User } from './baseApiClient';
+import type { User } from '../types/user';
 
 // Re-export User type for convenience
 export type { User };

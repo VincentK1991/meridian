@@ -5,6 +5,7 @@ __pycache__/
 venv/
 .venv/
 **/.venv/
+*.ipynb
 
 # Node
 node_modules/
@@ -13,7 +14,7 @@ dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.npm 
+.npm
 **/node_modules/
 **/dist/
 **/build/

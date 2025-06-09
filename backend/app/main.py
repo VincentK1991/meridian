@@ -1,18 +1,31 @@
 import uvicorn
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 
 from app.api.middlewares.cors_middleware import add_cors_middleware
 from app.api.routes.auth import router as auth_router
+from app.api.routes.session import router as session_router
 from app.api.types.users import User
 from app.connectors.databases import get_postgres
 
 app = FastAPI()
+
+
+# Custom exception handler for HTTPException
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    print(f"HTTPException: {exc.status_code} - {exc.detail}")
+    print(f"Request: {request.method} {request.url}")
+    #print(f"Headers: {dict(request.headers)}")
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
 
 # Add CORS middleware
 add_cors_middleware(app)
 
 # Include routers
 app.include_router(auth_router)
+app.include_router(session_router)
 
 
 @app.get("/")

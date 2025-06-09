@@ -4,10 +4,14 @@ Version: 0.1.0
 Requires-Python: >=3.12
 Requires-Dist: asyncpg>=0.30.0
 Requires-Dist: fastapi>=0.115.12
+Requires-Dist: google-adk>=1.2.1
 Requires-Dist: google-auth>=2.40.3
 Requires-Dist: google-auth-httplib2>=0.2.0
 Requires-Dist: google-auth-oauthlib>=1.2.2
+Requires-Dist: google-genai>=1.19.0
+Requires-Dist: psycopg2-binary>=2.9.10
 Requires-Dist: pydantic-settings>=2.9.1
 Requires-Dist: python-jose>=3.5.0
 Requires-Dist: ruff>=0.11.13
 Requires-Dist: uvicorn[standard]>=0.34.3
+Requires-Dist: websockets==13.1

@@ -37,7 +37,10 @@ async def get_current_user(
     access_token = request.cookies.get("access_token")
     refresh_token = request.cookies.get("refresh_token")
     if not access_token or not refresh_token:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized no access token or refresh token",
+        )
 
     try:
         access_token_payload = await verify_token(access_token)
@@ -49,39 +52,39 @@ async def get_current_user(
             # Access token is still valid, proceed to get user
             user = await db.fetchrow("SELECT * FROM users WHERE user_id = $1", user_id)
             if not user:
-                raise HTTPException(status_code=401, detail="Unauthorized")
+                raise HTTPException(status_code=401, detail="Unauthorized unknown user")
             return User(**dict(user))
 
-    except jwt.JWTError:
-        # Access token is invalid or expired, check refresh token
-        pass
+        else:
+            # Access token is expired, check refresh token
+            refresh_token_payload = await verify_token(refresh_token)
+            email: str = refresh_token_payload.get("email")
+            user_id: str = refresh_token_payload.get("user_id")
 
-    # Access token expired or invalid, try refresh token
-    try:
-        refresh_token_payload = await verify_token(refresh_token)
-        email: str = refresh_token_payload.get("email")
-        user_id: str = refresh_token_payload.get("user_id")
+            # Check if refresh token is expired
+            exp = refresh_token_payload.get("exp")
+            if exp and datetime.fromtimestamp(exp, tz=UTC) <= datetime.now(UTC):
+                # Refresh token is also expired
+                raise HTTPException(
+                    status_code=401, detail="Unauthorized refresh token expired"
+                )
 
-        # Check if refresh token is expired
-        exp = refresh_token_payload.get("exp")
-        if exp and datetime.fromtimestamp(exp, tz=UTC) <= datetime.now(UTC):
-            # Refresh token is also expired
-            raise HTTPException(status_code=401, detail="Unauthorized")
+            # Refresh token is valid, get user and create new access token
+            user = await db.fetchrow("SELECT * FROM users WHERE email = $1", email)
+            if not user:
+                raise HTTPException(status_code=401, detail="Unauthorized unknown user")
+            user_obj = User(**dict(user))
 
-        # Refresh token is valid, get user and create new access token
-        user = await db.fetchrow("SELECT * FROM users WHERE email = $1", email)
-        if not user:
-            raise HTTPException(status_code=401, detail="Unauthorized")
-        user_obj = User(**dict(user))
+            # Create new access token (this would typically be set in response cookies)
+            new_access_token = await create_access_token(user_obj)
+            await set_response_cookies(response, new_access_token, refresh_token)
 
-        # Create new access token (this would typically be set in response cookies)
-        new_access_token = await create_access_token(user_obj)
-        await set_response_cookies(response, new_access_token, refresh_token)
-
-        return user_obj, new_access_token
+            return user_obj
 
     except jwt.JWTError:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        raise HTTPException(
+            status_code=401, detail="Unauthorized invalid access token or refresh token"
+        ) from None
 
 
 async def create_access_token(user: User):
@@ -117,7 +120,10 @@ async def create_refresh_token(user: User):
 async def verify_token(token: str):
     try:
         payload = jwt.decode(
-            token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm]
+            token,
+            settings.jwt_secret_key,
+            algorithms=[settings.jwt_algorithm],
+            options={"verify_exp": False},
         )
         return payload
     except jwt.JWTError:

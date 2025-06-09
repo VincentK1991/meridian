@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import SignInPage from "./pages/signin";
-import ConsolePage from "./pages/console";
+import ConsolePage from "./pages/console/console";
 import GoogleCallbackHandler from "./components/GoogleCallbackHandler";
 import ProtectedRoute from "./components/ProtectedRoute";
 import "./App.css";
