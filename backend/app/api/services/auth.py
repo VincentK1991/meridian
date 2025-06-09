@@ -138,7 +138,7 @@ async def set_response_cookies(
         access_token,
         httponly=True,
         secure=True,
-        max_age=300,
+        max_age=604800,
         samesite="lax",
     )
     response.set_cookie(
