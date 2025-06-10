@@ -1,15 +1,29 @@
 import { createApiClient } from './baseApiClient';
+import type { EventModel } from '../types/event';
 import type { Session } from '../types/session';
 
 export const sessionApi = {
     getSessions: async (user_id: string): Promise<Session[]> => {
-        const response = await createApiClient('/session').get(`/${user_id}`);
+        const response = await createApiClient('/session').get(`/users/${user_id}/sessions`);
 
         // Store sessions in localStorage with user-specific key
         const storageKey = `sessions-${user_id}`;
         localStorage.setItem(storageKey, JSON.stringify(response.data));
 
         return response.data;
+    },
+    getSession: async (session_id: string): Promise<EventModel[]> => {
+
+
+        try {
+            const apiClient = createApiClient('/session');
+
+            const response = await apiClient.get(`/sessions/${session_id}/events`);
+
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
     },
 
     // Helper function to get sessions from localStorage

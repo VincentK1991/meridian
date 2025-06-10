@@ -1,6 +1,7 @@
 import { useCurrentUser, useLogout } from '../../hooks/useAuth';
 import { useSessions } from '../../hooks/useSession';
 import { useEffect, useState } from 'react';
+import ActiveSession from '../../components/ActiveSession';
 
 export default function ConsolePage() {
   const { data: user, isLoading, error } = useCurrentUser();
@@ -133,18 +134,18 @@ export default function ConsolePage() {
 
         {/* Session Tabs and Chat Area */}
         <div className="mt-8">
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 min-h-[500px] flex">
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 h-[600px] flex overflow-hidden">
             {/* Vertical Session Tabs */}
-            <div className="w-64 border-r border-gray-700 flex flex-col">
+            <div className="w-64 border-r border-gray-700 flex flex-col h-full">
               {/* New Session Button */}
-              <div className="p-4 border-b border-gray-700">
+              <div className="p-4 border-b border-gray-700 flex-shrink-0">
                 <button className="w-full px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors">
                   + New Session
                 </button>
               </div>
 
               {/* Session List */}
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto min-h-0">
                 {sessionsLoading ? (
                   <div className="p-4 text-gray-400">Loading sessions...</div>
                 ) : sortedSessions.length > 0 ? (
@@ -191,9 +192,9 @@ export default function ConsolePage() {
             </div>
 
             {/* Chat Content Area */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-w-0 h-full">
               {/* Chat Header */}
-              <div className="p-4 border-b border-gray-700">
+              <div className="p-4 border-b border-gray-700 flex-shrink-0">
                 <h2 className="text-xl font-semibold text-white">
                   {activeSessionId
                     ? `Session ${activeSessionId.slice(0, 8)}...`
@@ -203,22 +204,18 @@ export default function ConsolePage() {
               </div>
 
               {/* Chat Messages Area */}
-              <div className="flex-1 p-6">
-                <div className="h-full bg-gray-900/50 rounded-lg p-4 flex items-center justify-center">
-                  {activeSessionId ? (
-                    <p className="text-gray-400 text-center">
-                      Session: {activeSessionId}
-                      <br />
-                      <span className="text-sm">Chat functionality coming soon...</span>
-                    </p>
-                  ) : (
+              <div className="flex-1 bg-gray-900/50 min-h-0 overflow-hidden">
+                {activeSessionId ? (
+                  <ActiveSession sessionId={activeSessionId} />
+                ) : (
+                  <div className="h-full flex items-center justify-center">
                     <p className="text-gray-400 text-center">
                       Welcome to Meridian! Your AI assistant is ready to help.
                       <br />
                       <span className="text-sm">Select a session or create a new one to start chatting.</span>
                     </p>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import asyncpg
 
+from app.api.types.Event import EventModel
 from app.api.types.sessions import Session
 
 
@@ -7,9 +8,16 @@ async def create_new_session(user_id: str):
     #TODO: Implement session creation
     pass
 
-async def get_session(session_id: str):
-    #TODO: Implement session retrieval
-    pass
+async def get_session(session_id: str, db: asyncpg.Connection) -> list[EventModel]:
+    query = """
+        SELECT *
+        FROM events
+        WHERE session_id = $1
+        ORDER BY timestamp ASC
+        """
+    result = await db.fetch(query, session_id)
+    return [EventModel(**row) for row in result]
+
 
 async def delete_session(session_id: str):
     #TODO: Implement session deletion

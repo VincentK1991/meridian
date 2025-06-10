@@ -1,18 +1,29 @@
 from fastapi import APIRouter, Depends
 
 from app.api.services import sessions
+from app.api.services.auth import get_current_user
+from app.api.types.Event import EventModel
 from app.api.types.sessions import Session
 from app.connectors.databases import get_postgres
 
 router = APIRouter(prefix="/session", tags=["session"])
 
-@router.get("/{user_id}", response_model=list[Session])
+
+@router.get("/users/{user_id}/sessions", response_model=list[Session])
 async def get_all_sessions(
-    # request: Request,
-    # response: Response,
-    # current_user=Depends(get_current_user),
     user_id: str,
+    user=Depends(get_current_user),
     db=Depends(get_postgres),
 ):
     sessions_list = await sessions.get_all_sessions(user_id, db)
     return sessions_list
+
+
+@router.get("/sessions/{session_id}/events", response_model=list[EventModel])
+async def get_session(
+    session_id: str,
+    user=Depends(get_current_user),
+    db=Depends(get_postgres),
+):
+    session_list = await sessions.get_session(session_id, db)
+    return session_list

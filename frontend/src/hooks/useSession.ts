@@ -18,3 +18,31 @@ export const useSessions = (user_id: string) => {
         // initialData: getSessionsFromStorage(), // Use localStorage data as initial data
     });
 };
+
+export const useSession = (session_id: string) => {
+    console.log('useSession called with:', session_id);
+
+    const query = useQuery({
+        queryKey: ['session', session_id],
+        queryFn: () => {
+            console.log('useSession queryFn executing for:', session_id);
+            return sessionApi.getSession(session_id);
+        },
+        enabled: !!session_id, // Only fetch when session_id is available
+        //staleTime: 1 * 60 * 1000, // 1 minutes
+        refetchOnWindowFocus: true,
+        refetchOnMount: true,
+        // initialData: getSessionsFromStorage(), // Use localStorage data as initial data
+    });
+
+    console.log('useSession query state:', {
+        isLoading: query.isLoading,
+        isFetching: query.isFetching,
+        isError: query.isError,
+        enabled: !!session_id,
+        status: query.status,
+        fetchStatus: query.fetchStatus
+    });
+
+    return query;
+};
