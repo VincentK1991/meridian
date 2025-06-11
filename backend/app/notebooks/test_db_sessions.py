@@ -6,6 +6,10 @@ from google.adk import Agent
 from google.adk.agents.run_config import RunConfig, StreamingMode
 from google.adk.runners import Runner
 from google.adk.sessions import DatabaseSessionService
+from google.adk.tools.mcp_tool.mcp_toolset import (
+    MCPToolset,
+    StreamableHTTPServerParams,
+)
 from google.adk.tools.tool_context import ToolContext
 from google.genai import types
 
@@ -106,6 +110,27 @@ root_agent = Agent(
     ],
 )
 
+mcp_agent = Agent(
+    model="gemini-2.0-flash",
+    name="mcp_agent",
+    description=(
+        "mcp agent that can call mcp tools."
+    ),
+    instruction="""
+      You are an mcp agent that can call mcp tools.
+      this is a calculator tool that can perform basic arithmetic.
+    """,
+    tools=[
+        roll_die,
+        check_prime,
+        MCPToolset(
+            connection_params=StreamableHTTPServerParams(
+                url="http://localhost:8001/mcp",
+            ),
+        ),
+    ],
+)
+
 async def run_agent(user_message: str, runner: Runner, user_id: str, session_id: str):
     user_content = types.Content(
         role="user", parts=[types.Part.from_text(text=user_message)]
@@ -144,7 +169,7 @@ async def main():
     session_id = str(uuid.uuid4())
     runner = Runner(
     # Start with the info capture agent
-        agent=root_agent,
+        agent=mcp_agent,
         app_name=app_name,
         session_service=session_service,
     )
