@@ -14,19 +14,6 @@ from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 logger = logging.getLogger(__name__)
 
 
-# @click.command()
-# @click.option("--port", default=3000, help="Port to listen on for HTTP")
-# @click.option(
-#     "--log-level",
-#     default="INFO",
-#     help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
-# )
-# @click.option(
-#     "--json-response",
-#     is_flag=True,
-#     default=False,
-#     help="Enable JSON responses instead of SSE streams",
-# )
 def main(
     port: int = 8001,
     log_level: str = "INFO",
@@ -261,8 +248,8 @@ def main(
 
     import uvicorn
 
-    logger.info(f"Starting server on http://127.0.0.1:{port}")
-    uvicorn.run(starlette_app, host="127.0.0.1", port=port, log_level="info")
+    logger.info(f"Starting server on http://0.0.0.0:{port}")
+    uvicorn.run(starlette_app, host="0.0.0.0", port=port, log_level="info")
 
     return 0
 
