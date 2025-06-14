@@ -5,6 +5,7 @@ description = ""
 requires-python = ">=3.12"
 dependencies = [
     "asyncpg>=0.30.0",
+    "faker>=37.4.0",
     "fastapi>=0.115.12",
     "google-adk>=1.2.1",
     "google-auth>=2.40.3",

@@ -1,7 +1,6 @@
 import React from 'react';
-import { useSession } from '../hooks/useSession';
+import { useSession } from '../../hooks/useSession';
 import EventBox from './EventBox';
-import type { EventModel } from '@/types/event';
 
 interface ActiveSessionProps {
   sessionId: string;

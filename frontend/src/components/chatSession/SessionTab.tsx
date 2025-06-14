@@ -1,4 +1,4 @@
-import type { Session } from '../types/session';
+import type { Session } from '../../types/session';
 
 interface SessionTabProps {
     session: Session;
@@ -9,7 +9,7 @@ interface SessionTabProps {
 
 export default function SessionTab({ session, isActive, onClick, onClose }: SessionTabProps) {
     // Use session name if available, otherwise fallback to truncated ID
-    const displayName = (session as any).session_name || `Session ${session.id.slice(0, 8)}...`;
+    const displayName = session.title || `Session ${session.id.slice(0, 8)}...`;
 
     return (
         <div

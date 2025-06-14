@@ -1,7 +1,8 @@
 import { useCurrentUser, useLogout } from '../../hooks/useAuth';
 import { useSessions } from '../../hooks/useSession';
 import { useEffect, useState } from 'react';
-import ActiveSession from '../../components/ActiveSession';
+import ActiveSession from '../../components/chatSession/ActiveSession';
+import SessionTabs from '../../components/chatSession/SessionTabs';
 
 export default function ConsolePage() {
   const { data: user, isLoading, error } = useCurrentUser();
@@ -135,61 +136,18 @@ export default function ConsolePage() {
         {/* Session Tabs and Chat Area */}
         <div className="mt-8">
           <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 h-[600px] flex overflow-hidden">
-            {/* Vertical Session Tabs */}
-            <div className="w-64 border-r border-gray-700 flex flex-col h-full">
-              {/* New Session Button */}
-              <div className="p-4 border-b border-gray-700 flex-shrink-0">
-                <button className="w-full px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors">
-                  + New Session
-                </button>
-              </div>
-
-              {/* Session List */}
-              <div className="flex-1 overflow-y-auto min-h-0">
-                {sessionsLoading ? (
-                  <div className="p-4 text-gray-400">Loading sessions...</div>
-                ) : sortedSessions.length > 0 ? (
-                  <div className="space-y-1 p-2">
-                    {sortedSessions.map((session) => (
-                      <div
-                        key={session.id}
-                        className={`
-                          w-full px-3 py-3 rounded-lg cursor-pointer transition-colors border-l-2
-                          ${session.id === activeSessionId
-                            ? 'bg-gray-700 text-white border-blue-500'
-                            : 'bg-transparent text-gray-400 border-transparent hover:bg-gray-700 hover:text-white'
-                          }
-                        `}
-                        onClick={() => setActiveSessionId(session.id)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="truncate text-sm font-medium">
-                            {(session as any).session_name || `Session ${session.id.slice(0, 8)}...`}
-                          </span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              // Handle close session
-                            }}
-                            className="text-gray-500 hover:text-red-400 transition-colors ml-2"
-                          >
-                            ×
-                          </button>
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {new Date(session.update_time).toLocaleDateString()}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-4 text-gray-400 text-center">
-                    <p>No sessions yet</p>
-                    <p className="text-xs mt-1">Click "New Session" to start</p>
-                  </div>
-                )}
-              </div>
-            </div>
+            {/* Session Tabs */}
+            <SessionTabs
+              sessions={sortedSessions}
+              activeSessionId={activeSessionId}
+              onSessionSelect={setActiveSessionId}
+              onSessionClose={(sessionId) => {
+                // Handle session close logic here
+                console.log('Close session:', sessionId);
+              }}
+              sessionsLoading={sessionsLoading}
+              userId={user?.user_id || ''}
+            />
 
             {/* Chat Content Area */}
             <div className="flex-1 flex flex-col min-w-0 h-full">

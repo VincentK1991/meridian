@@ -1,12 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { sessionApi } from '../api/sessionService';
 
 export const useSessions = (user_id: string) => {
     // Get sessions from localStorage as initial data
-    const getSessionsFromStorage = () => {
-        if (!user_id) return [];
-        return sessionApi.getSessionsFromStorage(user_id);
-    };
 
     return useQuery({
         queryKey: ['sessions', user_id],
@@ -45,4 +41,20 @@ export const useSession = (session_id: string) => {
     });
 
     return query;
+};
+
+export const useCreateSession = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: () => sessionApi.createSession(),
+        onSuccess: (data) => {
+            console.log('Session created successfully:', data);
+            // Invalidate sessions query to refetch the list
+            queryClient.invalidateQueries({ queryKey: ['sessions'] });
+        },
+        onError: (error) => {
+            console.error('Error creating session:', error);
+        }
+    });
 };

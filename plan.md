@@ -2,10 +2,11 @@
 
 basic session plan
 
- 1. ~~create a route to return session information based on a session_id~~
+1. ~~create a route to return session information based on a session_id~~
 2. ~~display session information in the frontend (events of various types)~~
-3. ability for user to send user input into a session
-4. output to add to a session (via streaming mode)
+3. ability to soft delete a session
+4. ability for user to send user input into a session
+5. output to add to a session (via streaming mode)
 
 basic RAG plan
 
