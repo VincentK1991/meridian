@@ -1,3 +1,5 @@
+import  type { ResultWithReferences } from "./structuredOutput";
+
 export enum EventRole {
     USER = "user",
     MODEL = "model"
@@ -12,7 +14,7 @@ export interface FunctionCallModel {
 export interface FunctionResponseModel {
     id: string;
     name: string;
-    response?: string | Record<string, any> | null;
+    response?: string | Record<string, any> | ResultWithReferences | null;
 }
 
 export interface CodeExecutionModel {

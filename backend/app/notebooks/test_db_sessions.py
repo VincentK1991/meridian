@@ -8,7 +8,7 @@ from google.adk.runners import Runner
 from google.adk.sessions import DatabaseSessionService
 from google.genai import types
 
-from app.agents import search_and_execution_agent
+from app.agents import search_using_openai_agent
 from app.api.types.Event import EventModel
 
 load_dotenv()
@@ -75,7 +75,7 @@ async def main():
     # Start with the info capture agent
         #agent=mcp_agent,
         #agent=google_search_agent,
-        agent=search_and_execution_agent,
+        agent=search_using_openai_agent,
         app_name=app_name,
         session_service=session_service,
     )

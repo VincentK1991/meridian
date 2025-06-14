@@ -12,6 +12,7 @@ dependencies = [
     "google-auth-httplib2>=0.2.0",
     "google-auth-oauthlib>=1.2.2",
     "google-genai>=1.19.0",
+    "openai-agents>=0.0.17",
     "psycopg2-binary>=2.9.10",
     "pydantic-settings>=2.9.1",
     "python-jose>=3.5.0",
