@@ -2,7 +2,9 @@ from collections.abc import AsyncGenerator
 
 import asyncpg
 from dotenv import load_dotenv
+from neo4j import AsyncSession
 
+from app.connectors.neo4j import Neo4jConnector
 from app.connectors.postgres import PostgreSQLConnector
 
 load_dotenv()
@@ -23,3 +25,11 @@ async def get_postgres() -> AsyncGenerator[asyncpg.Connection, None]:
     """
     async with PostgreSQLConnector.get_connection() as connection:
         yield connection
+
+async def get_neo4j() -> AsyncGenerator[AsyncSession, None]:
+    """
+    FastAPI dependency that yields a Neo4j session.
+    The session is automatically closed when the request is complete.
+    """
+    async with Neo4jConnector.get_session() as session:
+        yield session

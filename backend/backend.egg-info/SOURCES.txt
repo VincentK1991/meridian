@@ -8,7 +8,12 @@ app/agents/google_search_agent.py
 app/agents/run_config.py
 app/agents/search_and_execution_agent.py
 app/agents/test_agent.py
+app/agents/test_openai_tool_agent.py
+app/agents/openAI_agents/__init__.py
 app/agents/openAI_agents/openai_web_search_agent.py
+app/agents/openAI_agents/run.py
+app/agents/openAI_agents/structured_output/__init__.py
+app/agents/openAI_agents/structured_output/content_with_references.py
 app/api/middlewares/cors_middleware.py
 app/api/routes/agent.py
 app/api/routes/auth.py

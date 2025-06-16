@@ -6,6 +6,8 @@ from contextlib import asynccontextmanager
 import asyncpg
 from dotenv import load_dotenv
 
+from app.config import settings
+
 load_dotenv()
 
 
@@ -16,11 +18,11 @@ class PostgreSQLConnector:
     async def get_pool(cls):
         if cls._pool is None:
             cls._pool = await asyncpg.create_pool(
-                host=os.getenv("POSTGRES_HOST", "localhost"),
-                port=int(os.getenv("POSTGRES_PORT", "5432")),
-                user=os.getenv("POSTGRES_USER", "postgres"),
-                password=os.getenv("POSTGRES_PASSWORD", "password123"),
-                database=os.getenv("POSTGRES_DB", "postgres"),
+                host=settings.postgres_host,
+                port=settings.postgres_port,
+                user=settings.postgres_user,
+                password=settings.postgres_password,
+                database=settings.postgres_db,
                 min_size=5,
                 max_size=20,
                 init=cls._init_connection,

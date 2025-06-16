@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  prefect:
+    build: .
+    container_name: prefect-pipeline
+    ports:
+      - "4200:4200"  # Prefect UI
+    volumes:
+      # Mount your source code for live updates
+      - ./src:/app/src
+      # Mount data directories
+      - ./data:/app/data
+      - ./logs:/app/logs
+      # Mount pyproject.toml for dependency changes
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./uv.lock:/app/uv.lock
+    environment:
+      - PREFECT_API_URL=http://0.0.0.0:4200/api
+      - PYTHONPATH=/app
+      - PREFECT_LOGGING_LEVEL=INFO
+    restart: unless-stopped
+    command: dev

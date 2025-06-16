@@ -28,3 +28,5 @@ databases/neo4j/data
 databases/neo4j/logs
 databases/neo4j/import
 databases/neo4j/plugins
+
+**/*.pdf

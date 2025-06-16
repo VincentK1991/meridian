@@ -5,7 +5,7 @@ from typing import Any
 from dotenv import load_dotenv
 from neo4j import AsyncDriver, AsyncGraphDatabase, AsyncSession
 
-from app.config import settings
+from indexing_pipeline.config import settings
 
 load_dotenv()
 
@@ -72,70 +72,3 @@ class Neo4jConnector:
         async with cls.get_session(database=database) as session:
             result = await session.run(query, parameters or {})
             return await result.data()
-
-    @classmethod
-    async def execute_write_query(
-        cls,
-        query: str,
-        parameters: dict[str, Any] | None = None,
-        database: str | None = None,
-    ) -> list[dict[str, Any]]:
-        """
-        Execute a write Cypher query within a write transaction.
-
-        Args:
-            query: Cypher query string
-            parameters: Query parameters
-            database: Database name (optional)
-
-        Returns:
-            List of records as dictionaries
-        """
-
-        async def _execute_write(tx):
-            result = await tx.run(query, parameters or {})
-            return await result.data()
-
-        async with cls.get_session(database=database) as session:
-            return await session.execute_write(_execute_write)
-
-    @classmethod
-    async def execute_read_query(
-        cls,
-        query: str,
-        parameters: dict[str, Any] | None = None,
-        database: str | None = None,
-    ) -> list[dict[str, Any]]:
-        """
-        Execute a read Cypher query within a read transaction.
-
-        Args:
-            query: Cypher query string
-            parameters: Query parameters
-            database: Database name (optional)
-
-        Returns:
-            List of records as dictionaries
-        """
-
-        async def _execute_read(tx):
-            result = await tx.run(query, parameters or {})
-            return await result.data()
-
-        async with cls.get_session(database=database) as session:
-            return await session.execute_read(_execute_read)
-
-    @classmethod
-    async def verify_connectivity(cls) -> bool:
-        """
-        Verify that the Neo4j database is accessible.
-
-        Returns:
-            True if connection is successful, False otherwise
-        """
-        try:
-            driver = await cls.get_driver()
-            await driver.verify_connectivity()
-            return True
-        except Exception:
-            return False
