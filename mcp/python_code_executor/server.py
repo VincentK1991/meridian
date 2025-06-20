@@ -14,6 +14,144 @@ from starlette.types import Receive, Scope, Send
 logger = logging.getLogger(__name__)
 
 
+def create_message_prompt(
+    tool_name: str = "execute_code",
+) -> list[types.PromptMessage]:
+    """Create the messages for the prompt with comprehensive code execution tool context."""
+    messages = []
+
+    # Create comprehensive context about the code execution tools
+    tool_context = """
+# Python Code Execution Tools
+
+I have access to powerful Python code execution tools that can run arbitrary Python code and capture the output. Here's what you need to know:
+
+## Available Tools
+
+### 1. `execute_code`
+- **Purpose**: Execute arbitrary Python code and capture printed output
+- **Input**: Raw Python code as a string (NO markdown code blocks needed)
+- **Output**: JSON object with `code`, `print_output`, and `success` fields
+
+### 2. `execute_code_with_html`
+- **Purpose**: Same as execute_code but with HTML rendering capability
+- **Input**: Raw Python code as a string (NO markdown code blocks needed)
+- **Output**: JSON object with `code`, `print_output`, `success`, and `html` fields
+
+## ⚠️ Important: Code Input Format
+
+**PROVIDE RAW PYTHON CODE ONLY** - Do NOT wrap in markdown code blocks!
+
+✅ **CORRECT FORMAT:**
+```
+print("Hello World")
+result = 2 + 2
+print(f"Result: {result}")
+```
+
+❌ **INCORRECT FORMAT:**
+```
+```python
+print("Hello World")
+result = 2 + 2
+print(f"Result: {result}")
+```
+```
+
+The tools expect plain Python code strings, not markdown-formatted code blocks.
+
+## Key Features
+
+### ✅ Async-First Execution
+- Code runs as async by default - you can use `await` syntax directly
+- Perfect for concurrent execution without blocking
+- Example: `await asyncio.sleep(0.5)` works perfectly
+
+### ✅ Full Python Support
+- Import any available libraries (numpy, pandas, matplotlib, etc.)
+- Execute complex computations and data processing
+- Handle loops, functions, classes, and all Python constructs
+
+### ✅ Output Capture
+- All `print()` statements are captured
+- Both stdout and stderr are included
+- Execution success/failure status is tracked
+
+### ✅ Error Handling
+- Comprehensive error reporting with full tracebacks
+- Partial output captured even when errors occur
+- Clear success/failure indicators
+
+## Example Usage Patterns
+
+### Basic Computation
+```python
+result = 2 + 2
+print(f"2 + 2 = {result}")
+```
+
+### Async Operations
+```python
+print("Starting async task...")
+await asyncio.sleep(0.5)
+print("Async operation completed!")
+```
+
+### Data Processing with NumPy
+```python
+import numpy as np
+arr = np.array([1, 2, 3, 4, 5])
+result = np.sum(arr ** 2)
+print(f"Array: {arr}")
+print(f"Sum of squares: {result}")
+```
+
+### Complex Async Loops
+```python
+results = []
+for i in range(3):
+    print(f"Processing item {i+1}...")
+    await asyncio.sleep(0.1)
+    result = i ** 2
+    results.append(result)
+print(f"Final results: {results}")
+```
+
+## Output Format
+The tools return a JSON object like:
+```json
+{
+  "code": "print('Hello World')",
+  "print_output": "Hello World",
+  "success": true
+}
+```
+
+## Best Practices
+- Use `await asyncio.sleep()` instead of `time.sleep()` for delays
+- The code execution is async-first, perfect for concurrent operations
+- All standard Python libraries and async constructs are supported
+- Error messages include full tracebacks for debugging
+
+""".strip()
+
+    if tool_name == "execute_code":
+    # Add the tool context
+        messages.append(
+            types.PromptMessage(
+                role="user", content=types.TextContent(type="text", text=tool_context)
+            )
+        )
+    elif tool_name == "execute_code_with_html":
+        messages.append(
+            types.PromptMessage(
+                role="user", content=types.TextContent(type="text", text=tool_context)
+            )
+        )
+
+    return messages
+
+
 def main(
     port: int = 8001,
     log_level: str = "INFO",
@@ -116,6 +254,35 @@ def main(
             ),
         ]
 
+    @app.get_prompt()
+    async def get_prompt(
+        name: str, arguments: dict[str, str] | None = None
+    ) -> types.GetPromptResult:
+        if name != "execute_code" and name != "execute_code_with_html":
+            raise ValueError(f"Unknown prompt: {name}")
+
+        return types.GetPromptResult(
+            messages=create_message_prompt(
+                tool_name=name,
+            ),
+            description="A simple prompt with optional context and topic arguments",
+        )
+
+    @app.list_prompts()
+    async def list_prompts() -> list[types.Prompt]:
+        return [
+            types.Prompt(
+                name="execute_code",
+                title="Execute Code Prompt",
+                description="Execute Python code and capture the output",
+            ),
+            types.Prompt(
+                name="execute_code_with_html",
+                title="Execute Code with HTML Prompt",
+                description="Execute Python code and capture output with HTML rendering capability",
+            )
+        ]
+
     # Create the session manager with true stateless mode
     session_manager = StreamableHTTPSessionManager(
         app=app,
@@ -166,29 +333,6 @@ def main(
                 yield
             finally:
                 logger.info("MCP Server shutting down...")
-
-    # Add a test endpoint
-    # async def test_endpoint(request):
-    #     return JSONResponse(
-    #         {
-    #             "message": "MCP server is running",
-    #             "path": request.url.path,
-    #             "method": request.method,
-    #             "mcp_endpoint": "/mcp",
-    #         }
-    #     )
-
-    # # Debug endpoint to see all headers
-    # async def debug_endpoint(request):
-    #     headers = dict(request.headers)
-    #     return JSONResponse(
-    #         {
-    #             "method": request.method,
-    #             "path": str(request.url),
-    #             "headers": headers,
-    #             "query_params": dict(request.query_params),
-    #         }
-    #     )
 
     # Alternative MCP handler directly as a route
     async def mcp_route_handler(request):
@@ -266,3 +410,91 @@ def main(
 
 if __name__ == "__main__":
     main()
+
+"""
+# Example Usage:
+
+1. Get the prompt
+
+curl -X POST http://localhost:8001/mcp \
+  -H "Accept: application/json, text/event-stream" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "prompts/get",
+    "params": {
+      "name": "simple"
+    }
+  }'
+
+2. Execute code (note: use double quotes inside the code string)
+
+curl -X POST http://localhost:8001/mcp \
+  -H "Accept: application/json, text/event-stream" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "name": "execute_code",
+      "arguments": {
+        "code": "print(\"Hello World\")"
+      }
+    }
+  }'
+
+3. Execute code with multiline example
+
+curl -X POST http://localhost:8001/mcp \
+  -H "Accept: application/json, text/event-stream" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "tools/call",
+    "params": {
+      "name": "execute_code",
+      "arguments": {
+        "code": "result = 2 + 2\nprint(f\"Result: {result}\")\nprint(\"Calculation complete!\")"
+      }
+    }
+  }'
+
+4. Execute async code
+
+curl -X POST http://localhost:8001/mcp \
+  -H "Accept: application/json, text/event-stream" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+      "name": "execute_code",
+      "arguments": {
+        "code": "import asyncio\nprint(\"Starting async task...\")\nawait asyncio.sleep(0.5)\nprint(\"Async task completed!\")"
+      }
+    }
+  }'
+
+5. Execute code with HTML output
+
+curl -X POST http://localhost:8001/mcp \
+  -H "Accept: application/json, text/event-stream" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 4,
+    "method": "tools/call",
+    "params": {
+      "name": "execute_code_with_html",
+      "arguments": {
+        "code": "print(\"HTML-enabled execution\")\ndata = {\"message\": \"Hello HTML!\", \"numbers\": [1, 2, 3]}\nprint(f\"Data: {data}\")"
+      }
+    }
+  }'
+
+Note: When including quotes in the code string, use double quotes (\") instead of single quotes (') to avoid JSON parsing errors.
+"""
