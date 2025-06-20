@@ -8,9 +8,8 @@
         }
     },
 
-    // Disable ALL other Python tools to avoid conflicts
+    // Disable other Python tools to avoid conflicts
     "python.formatting.provider": "none",
-    "python.linting.enabled": false,
     "python.analysis.autoImportCompletions": false,
     "autopep8.args": [],
     "autopep8.enabled": false,
@@ -24,9 +23,13 @@
     // Python interpreter
     "python.defaultInterpreterPath": "./backend/.venv/bin/python",
 
-    // Force Ruff as the only formatter
+    // Ruff extension settings (these are the correct modern settings)
     "ruff.enable": true,
+    "ruff.lint.enable": true,
+    "ruff.lint.preview": true,
     "ruff.organizeImports": true,
+    "ruff.configuration": "./backend/pyproject.toml",
+    "ruff.cwd": "./backend",
 
     // General editor settings
     "editor.rulers": [88],

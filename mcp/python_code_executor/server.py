@@ -1,4 +1,5 @@
 import contextlib
+import json
 import logging
 from collections.abc import AsyncIterator
 from contextvars import ContextVar
@@ -21,14 +22,16 @@ request_headers_context: ContextVar[dict] = ContextVar("request_headers", defaul
 def create_message_prompt(
     tool_name: str = "execute_code",
 ) -> list[types.PromptMessage]:
-    """Create the messages for the prompt with comprehensive code execution tool context."""
+    """Create the messages for the prompt with comprehensive
+    code execution tool context."""
     messages = []
 
     # Create comprehensive context about the code execution tools
     tool_context = """
 # Python Code Execution Tools
 
-I have access to powerful Python code execution tools that can run arbitrary Python code and capture the output. Here's what you need to know:
+I have access to powerful Python code execution tools that can run arbitrary Python
+code and capture the output. Here's what you need to know:
 
 ## Available Tools
 
@@ -156,6 +159,26 @@ The tools return a JSON object like:
     return messages
 
 
+def parse_header_value(value: str) -> list[tuple[str, str]] | str:
+    """
+    Try to parse header value as JSON. If it fails, return the original string.
+    This allows headers to contain either plain strings or JSON dictionaries.
+    """
+    if not value:
+        return value
+
+    # Check if the value looks like JSON (starts with { and ends with })
+    if value.strip().startswith("{") and value.strip().endswith("}"):
+        try:
+            dict_value = json.loads(value)
+            return [(key, value) for key, value in dict_value.items()]
+        except json.JSONDecodeError:
+            logger.warning(f"Failed to parse JSON header value: {value}")
+            return value
+
+    return value
+
+
 # Create the MCP server at module level for hot reload support
 mcp_server = Server("code-executor-mcp")
 
@@ -177,7 +200,11 @@ async def call_tool(
 
             # Inject header information into the code execution environment
             # Add header info as a print statement at the beginning
-            header_info = f"print('=== MCP Server Header Info ===')\nprint('user-api-key: {user_api_key}')\nprint('=== End Header Info ===')\n\n"
+            header_info = f"""
+print('=== MCP Server Header Info ===')
+print('user-api-key: {user_api_key}')
+print('=== End Header Info ===')
+"""
             enhanced_code = header_info + code
 
             # Use async execution for better concurrency
@@ -203,7 +230,11 @@ async def call_tool(
 
             # Inject header information into the code execution environment
             # Add header info as a print statement at the beginning
-            header_info = f"print('=== MCP Server Header Info ===')\nprint('user-api-key: {user_api_key}')\nprint('=== End Header Info ===')\n\n"
+            header_info = f"""
+print('=== MCP Server Header Info ===')
+print('user-api-key: {user_api_key}')
+print('=== End Header Info ===')
+"""
             enhanced_code = header_info + code
 
             # Use async execution for better concurrency
@@ -255,7 +286,8 @@ async def list_tools() -> list[types.Tool]:
         ),
         types.Tool(
             name="execute_code_with_html",
-            description="Execute Python code and capture output with HTML rendering capability",
+            description="""Execute Python code and capture output
+            with HTML rendering capability""",
             inputSchema={
                 "type": "object",
                 "required": ["code"],
@@ -296,7 +328,8 @@ async def list_prompts() -> list[types.Prompt]:
         types.Prompt(
             name="execute_code_with_html",
             title="Execute Code with HTML Prompt",
-            description="Execute Python code and capture output with HTML rendering capability",
+            description="""Execute Python code and capture output
+            with HTML rendering capability""",
         ),
     ]
 
