@@ -3,6 +3,7 @@ import logging
 from collections.abc import AsyncIterator
 
 import mcp.types as types
+from code_executor import CodeExecutionResult, CodeExecutionWithHtml, execute_code_async
 from mcp.server.lowlevel import Server
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 from starlette.applications import Starlette
@@ -11,39 +12,6 @@ from starlette.routing import Mount, Route
 from starlette.types import Receive, Scope, Send
 
 logger = logging.getLogger(__name__)
-
-
-def create_messages(
-    context: str | None = None, topic: str | None = None
-) -> list[types.PromptMessage]:
-    """Create the messages for the prompt."""
-    messages = []
-
-    # Add context if provided
-    if context:
-        messages.append(
-            types.PromptMessage(
-                role="user",
-                content=types.TextContent(
-                    type="text", text=f"Here is some relevant context: {context}"
-                ),
-            )
-        )
-
-    # Add the main prompt
-    prompt = "Please help me with "
-    if topic:
-        prompt += f"the following topic: {topic}"
-    else:
-        prompt += "whatever questions I may have."
-
-    messages.append(
-        types.PromptMessage(
-            role="user", content=types.TextContent(type="text", text=prompt)
-        )
-    )
-
-    return messages
 
 
 def main(
@@ -57,7 +25,7 @@ def main(
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
-    app = Server("mcp-calculator-demo")
+    app = Server("code-executor-mcp")
 
     @app.call_tool()
     async def call_tool(
@@ -65,34 +33,16 @@ def main(
     ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
         logger.info(f"Tool called: {name} with args: {arguments}")
 
-        if name == "calculate":
-            operation = arguments.get("operation")
-            a = arguments.get("a")
-            b = arguments.get("b")
-
+        if name == "execute_code":
             try:
-                # Ensure we have numbers
-                a = float(a)
-                b = float(b)
-
-                # Perform the calculation
-                if operation == "add":
-                    result = a + b
-                elif operation == "subtract":
-                    result = a - b
-                elif operation == "multiply":
-                    result = a * b
-                elif operation == "divide":
-                    if b == 0:
-                        raise ValueError("Cannot divide by zero")
-                    result = a / b
-                else:
-                    raise ValueError(f"Unknown operation: {operation}")
+                code = arguments.get("code")
+                # Use async execution for better concurrency
+                result: CodeExecutionResult = await execute_code_async(code)
 
                 return [
                     types.TextContent(
                         type="text",
-                        text=f"Result: {a} {operation} {b} = {result}",
+                        text=result.model_dump_json(),
                     )
                 ]
 
@@ -103,6 +53,27 @@ def main(
                         text=f"Error: {str(e)}",
                     )
                 ]
+        elif name == "execute_code_with_html":
+            try:
+                code = arguments.get("code")
+                # Use async execution for better concurrency
+                result_with_html: CodeExecutionWithHtml = await execute_code_async(code)
+
+                return [
+                    types.TextContent(
+                        type="text",
+                        text=result_with_html.model_dump_json(),
+                    )
+                ]
+
+            except (ValueError, TypeError) as e:
+                return [
+                    types.TextContent(
+                        type="text",
+                        text=f"Error: {str(e)}",
+                    )
+                ]
+
         else:
             return [
                 types.TextContent(
@@ -116,69 +87,34 @@ def main(
         logger.info("Tools list requested")
         return [
             types.Tool(
-                name="calculate",
-                description="Perform basic arithmetic operations (add, subtract, multiply, divide)",
+                name="execute_code",
+                description="Execute arbitrary Python code and capture the output",
                 inputSchema={
                     "type": "object",
-                    "required": ["operation", "a", "b"],
+                    "required": ["code"],
                     "properties": {
-                        "operation": {
+                        "code": {
                             "type": "string",
-                            "enum": ["add", "subtract", "multiply", "divide"],
-                            "description": "The arithmetic operation to perform",
-                        },
-                        "a": {
-                            "type": "number",
-                            "description": "The first number",
-                        },
-                        "b": {
-                            "type": "number",
-                            "description": "The second number",
+                            "description": "The Python code to execute",
                         },
                     },
                 },
-            )
-        ]
-
-    @app.list_prompts()
-    async def list_prompts() -> list[types.Prompt]:
-        return [
-            types.Prompt(
-                name="simple",
-                title="Simple Assistant Prompt",
-                description="A simple prompt that can take optional context and topic "
-                "arguments",
-                arguments=[
-                    types.PromptArgument(
-                        name="context",
-                        description="Additional context to consider",
-                        required=False,
-                    ),
-                    types.PromptArgument(
-                        name="topic",
-                        description="Specific topic to focus on",
-                        required=False,
-                    ),
-                ],
-            )
-        ]
-
-    @app.get_prompt()
-    async def get_prompt(
-        name: str, arguments: dict[str, str] | None = None
-    ) -> types.GetPromptResult:
-        if name != "simple":
-            raise ValueError(f"Unknown prompt: {name}")
-
-        if arguments is None:
-            arguments = {}
-
-        return types.GetPromptResult(
-            messages=create_messages(
-                context=arguments.get("context"), topic=arguments.get("topic")
             ),
-            description="A simple prompt with optional context and topic arguments",
-        )
+            types.Tool(
+                name="execute_code_with_html",
+                description="Execute Python code and capture output with HTML rendering capability",
+                inputSchema={
+                    "type": "object",
+                    "required": ["code"],
+                    "properties": {
+                        "code": {
+                            "type": "string",
+                            "description": "The Python code to execute",
+                        },
+                    },
+                },
+            ),
+        ]
 
     # Create the session manager with true stateless mode
     session_manager = StreamableHTTPSessionManager(
@@ -232,27 +168,27 @@ def main(
                 logger.info("MCP Server shutting down...")
 
     # Add a test endpoint
-    async def test_endpoint(request):
-        return JSONResponse(
-            {
-                "message": "MCP server is running",
-                "path": request.url.path,
-                "method": request.method,
-                "mcp_endpoint": "/mcp",
-            }
-        )
+    # async def test_endpoint(request):
+    #     return JSONResponse(
+    #         {
+    #             "message": "MCP server is running",
+    #             "path": request.url.path,
+    #             "method": request.method,
+    #             "mcp_endpoint": "/mcp",
+    #         }
+    #     )
 
-    # Debug endpoint to see all headers
-    async def debug_endpoint(request):
-        headers = dict(request.headers)
-        return JSONResponse(
-            {
-                "method": request.method,
-                "path": str(request.url),
-                "headers": headers,
-                "query_params": dict(request.query_params),
-            }
-        )
+    # # Debug endpoint to see all headers
+    # async def debug_endpoint(request):
+    #     headers = dict(request.headers)
+    #     return JSONResponse(
+    #         {
+    #             "method": request.method,
+    #             "path": str(request.url),
+    #             "headers": headers,
+    #             "query_params": dict(request.query_params),
+    #         }
+    #     )
 
     # Alternative MCP handler directly as a route
     async def mcp_route_handler(request):
@@ -263,6 +199,8 @@ def main(
 
         # Convert Starlette request to ASGI scope/receive/send
         scope = request.scope
+        request_headers = request.headers
+        print(f"request_headers: {request_headers}")
 
         async def receive():
             # For POST requests, read the body
@@ -305,9 +243,9 @@ def main(
     starlette_app = Starlette(
         debug=True,
         routes=[
-            Route("/", test_endpoint),
-            Route("/test", test_endpoint),
-            Route("/debug", debug_endpoint, methods=["GET", "POST"]),
+            # Route("/", test_endpoint),
+            # Route("/test", test_endpoint),
+            # Route("/debug", debug_endpoint, methods=["GET", "POST"]),
             # Try both mount and direct route
             Route("/mcp", mcp_route_handler, methods=["GET", "POST"]),
             Route(
@@ -328,65 +266,3 @@ def main(
 
 if __name__ == "__main__":
     main()
-
-"""
-example usage:
-tool call:
-
-curl -X POST http://localhost:8001/mcp \
-  -H "Accept: application/json, text/event-stream" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "tools/call",
-    "params": {
-      "name": "calculate",
-      "arguments": {
-        "operation": "add",
-        "a": 10,
-        "b": 5
-      }
-    }
-  }'
-
-list tools:
-
-curl -X POST http://localhost:8001/mcp \
-  -H "Accept: application/json, text/event-stream" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "tools/list",
-    "params": {}
-  }'
-
-prompt:
-
-curl -X POST http://localhost:8001/mcp \
-  -H "Accept: application/json, text/event-stream" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 3,
-    "method": "prompts/get",
-    "params": {
-      "name": "simple"
-    }
-  }'
-
-list prompts:
-curl -X POST http://localhost:8001/mcp \
-  -H "Accept: application/json, text/event-stream" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "prompts/list",
-    "params": {}
-  }'
-
-  
-
-"""
