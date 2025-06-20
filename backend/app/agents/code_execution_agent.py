@@ -2,8 +2,8 @@ from google.adk.agents import Agent
 from google.adk.code_executors import BuiltInCodeExecutor
 
 coding_agent = Agent(
-    model='gemini-2.0-flash',
-    name='CodeAgent',
+    model="gemini-2.0-flash",
+    name="CodeAgent",
     instruction="""
     You're a specialist in Code Execution.
     You can write a valid python code to solve user problems.

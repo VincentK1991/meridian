@@ -29,6 +29,7 @@ async def get_session(
     session_list = await sessions.get_session(session_id, db)
     return session_list
 
+
 @router.post("/create", response_model=SessionCreate)
 async def create_session(
     user: User = Depends(get_current_user),

@@ -26,6 +26,7 @@ async def get_postgres() -> AsyncGenerator[asyncpg.Connection, None]:
     async with PostgreSQLConnector.get_connection() as connection:
         yield connection
 
+
 async def get_neo4j() -> AsyncGenerator[AsyncSession, None]:
     """
     FastAPI dependency that yields a Neo4j session.

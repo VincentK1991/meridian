@@ -43,8 +43,8 @@ async def agent_event_stream(
         run_config=run_config,
     ):
         event_dict = event.model_dump()
-        event_dict['session_id'] = session_id
-        event_dict['user_id'] = user_id
+        event_dict["session_id"] = session_id
+        event_dict["user_id"] = user_id
         event_model = EventModel(**event_dict)
         event_model_str = event_model.model_dump_json()
         yield event_model_str

@@ -9,14 +9,17 @@ from app.oauth.google import google_profile_oauth
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
+
 class GoogleCallback(BaseModel):
     code: str
     state: str
+
 
 class CurrentUserResponse(BaseModel):
     user_id: UUIDStr
     email: str
     name: str
+
 
 @router.get("/google/url")
 async def get_google_auth_url(request: Request):
@@ -83,11 +86,7 @@ async def google_auth_callback(
     refresh_token = await auth.create_refresh_token(user)
     await auth.set_response_cookies(response, access_token, refresh_token)
 
-    return CurrentUserResponse(
-        user_id=user.user_id,
-        email=user.email,
-        name=user.name
-    )
+    return CurrentUserResponse(user_id=user.user_id, email=user.email, name=user.name)
 
 
 @router.get("/me", response_model=CurrentUserResponse)
@@ -107,11 +106,10 @@ async def refresh_me(current_user=Depends(get_current_user)):
         dict: Current user's information
     """
     current_user_package = CurrentUserResponse(
-        user_id=current_user.user_id,
-        email=current_user.email,
-        name=current_user.name
+        user_id=current_user.user_id, email=current_user.email, name=current_user.name
     )
     return current_user_package
+
 
 @router.post("/logout")
 async def logout(request: Request, response: Response):

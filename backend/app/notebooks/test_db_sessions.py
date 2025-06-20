@@ -24,6 +24,7 @@ db_name = "postgres"
 db_url = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 session_service = DatabaseSessionService(db_url=db_url)
 
+
 async def rename_session(session_id: str, title: str):
     conn = await asyncpg.connect(db_url)
     query = """
@@ -34,6 +35,7 @@ async def rename_session(session_id: str, title: str):
     await conn.execute(query, session_id, title, datetime.utcnow())
     await conn.close()
     return True
+
 
 async def run_agent(user_message: str, runner: Runner, user_id: str, session_id: str):
     user_content = types.Content(
@@ -58,8 +60,8 @@ async def run_agent(user_message: str, runner: Runner, user_id: str, session_id:
                     + str(parts.function_response.response)
                 )
         event_dict = event.model_dump()
-        event_dict['session_id'] = session_id
-        event_dict['user_id'] = user_id
+        event_dict["session_id"] = session_id
+        event_dict["user_id"] = user_id
         event_model = EventModel(**event_dict)
         event_model_str = event_model.model_dump_json()
         print(event_model_str)
@@ -72,9 +74,9 @@ async def main():
     user_id_1 = "6f48d6b6-6e51-4fce-a64f-5d109c59c004"
     session_id = str(uuid.uuid4())
     runner = Runner(
-    # Start with the info capture agent
-        #agent=mcp_agent,
-        #agent=google_search_agent,
+        # Start with the info capture agent
+        # agent=mcp_agent,
+        # agent=google_search_agent,
         agent=search_using_openai_agent,
         app_name=app_name,
         session_service=session_service,
@@ -89,7 +91,7 @@ async def main():
         _ = await runner.session_service.create_session(
             app_name=app_name, user_id=user_id_1, session_id=session_id
         )
-        renamed_session_title = fake.catch_phrase().replace(" "," -")
+        renamed_session_title = fake.catch_phrase().replace(" ", " -")
         await rename_session(session_id, renamed_session_title)
 
     while True:

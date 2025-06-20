@@ -10,9 +10,11 @@ MODEL_NAME = "gemini-2.0-flash"
 
 # --- 2. Define Schemas ---
 
+
 # Input schema used by both agents
 class CountryInput(BaseModel):
     country: str = Field(description="The country to get information about.")
+
 
 # Output schema ONLY for the second agent
 class CapitalInfoOutput(BaseModel):
@@ -22,6 +24,7 @@ class CapitalInfoOutput(BaseModel):
     population_estimate: str = Field(
         description="An estimated population of the capital city."
     )
+
 
 # --- 3. Define the Tool (Only for the first agent) ---
 def get_capital_city(country: str) -> str:
@@ -39,6 +42,7 @@ def get_capital_city(country: str) -> str:
     )
     print(f"-- Tool Result: '{result}' --")
     return result
+
 
 # --- 4. Configure Agents ---
 

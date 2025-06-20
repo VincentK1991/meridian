@@ -16,7 +16,7 @@ app = FastAPI()
 async def http_exception_handler(request: Request, exc: HTTPException):
     print(f"HTTPException: {exc.status_code} - {exc.detail}")
     print(f"Request: {request.method} {request.url}")
-    #print(f"Headers: {dict(request.headers)}")
+    # print(f"Headers: {dict(request.headers)}")
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 

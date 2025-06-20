@@ -1,0 +1,31 @@
+repos:
+  # Ruff for Python linting and formatting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      # Run the linter
+      - id: ruff
+        args: [--fix]
+        files: ^backend/.*\.py$
+      # Run the formatter
+      - id: ruff-format
+        files: ^backend/.*\.py$
+
+  # General pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # Remove trailing whitespace
+      - id: trailing-whitespace
+        files: ^backend/.*\.(py|yml|yaml|json|md)$
+      # Ensure files end with newline
+      - id: end-of-file-fixer
+        files: ^backend/.*\.(py|yml|yaml|json|md)$
+      # Check for merge conflicts
+      - id: check-merge-conflict
+      # Check JSON syntax
+      - id: check-json
+        files: ^backend/.*\.json$
+      # Check YAML syntax
+      - id: check-yaml
+        files: ^backend/.*\.(yml|yaml)$

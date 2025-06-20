@@ -56,9 +56,7 @@ async def check_prime(nums: list[int]) -> str:
 calculator_agent = Agent(
     model="gemini-2.0-flash",
     name="mcp_agent",
-    description=(
-        "mcp agent that can call mcp tools."
-    ),
+    description=("mcp agent that can call mcp tools."),
     instruction="""
       You are an mcp agent that can call mcp tools.
       this is a calculator tool that can perform basic arithmetic.

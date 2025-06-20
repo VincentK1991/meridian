@@ -60,4 +60,5 @@ indent-style = "space"
 [dependency-groups]
 dev = [
     "ipykernel>=6.29.5",
+    "pre-commit>=4.2.0",
 ]

@@ -45,9 +45,11 @@ class CodeExecutionModel(BaseModel):
     code: str
     language: str
 
+
 class CodeExecutionResultModel(BaseModel):
     output: str
     outcome: str
+
 
 class PartsModel(BaseModel):
     text: str | None = None
@@ -93,6 +95,7 @@ class GroundingSupport(BaseModel):
 
 class RetrievalMetadata(BaseModel):
     google_search_dynamic_retrieval_score: float | None = None
+
 
 class SearchEntryPoint(BaseModel):
     rendered_content: str | dict | None = None
