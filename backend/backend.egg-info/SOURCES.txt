@@ -30,7 +30,6 @@ app/connectors/databases.py
 app/connectors/neo4j.py
 app/connectors/postgres.py
 app/notebooks/test_db_sessions.py
-app/notebooks/test_streaming.py
 app/oauth/base_oauth.py
 app/oauth/google.py
 backend.egg-info/PKG-INFO

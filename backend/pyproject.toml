@@ -56,3 +56,8 @@ quote-style = "double"
 
 # Indent with spaces, rather than tabs.
 indent-style = "space"
+
+[dependency-groups]
+dev = [
+    "ipykernel>=6.29.5",
+]

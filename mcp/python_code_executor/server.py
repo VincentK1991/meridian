@@ -1,6 +1,7 @@
 import contextlib
 import logging
 from collections.abc import AsyncIterator
+from contextvars import ContextVar
 
 import mcp.types as types
 from code_executor import CodeExecutionResult, CodeExecutionWithHtml, execute_code_async
@@ -12,6 +13,9 @@ from starlette.routing import Mount, Route
 from starlette.types import Receive, Scope, Send
 
 logger = logging.getLogger(__name__)
+
+# Context variable to store request headers for use in tools
+request_headers_context: ContextVar[dict] = ContextVar("request_headers", default={})
 
 
 def create_message_prompt(
@@ -162,11 +166,22 @@ async def call_tool(
 ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
     logger.info(f"Tool called: {name} with args: {arguments}")
 
+    # Get headers from context
+    headers = request_headers_context.get({})
+    user_api_key = headers.get("user-api-key", "Not provided")
+    logger.info(f"Headers available in tool: user-api-key={user_api_key}")
+
     if name == "execute_code":
         try:
             code = arguments.get("code")
+
+            # Inject header information into the code execution environment
+            # Add header info as a print statement at the beginning
+            header_info = f"print('=== MCP Server Header Info ===')\nprint('user-api-key: {user_api_key}')\nprint('=== End Header Info ===')\n\n"
+            enhanced_code = header_info + code
+
             # Use async execution for better concurrency
-            result: CodeExecutionResult = await execute_code_async(code)
+            result: CodeExecutionResult = await execute_code_async(enhanced_code)
 
             return [
                 types.TextContent(
@@ -185,8 +200,16 @@ async def call_tool(
     elif name == "execute_code_with_html":
         try:
             code = arguments.get("code")
+
+            # Inject header information into the code execution environment
+            # Add header info as a print statement at the beginning
+            header_info = f"print('=== MCP Server Header Info ===')\nprint('user-api-key: {user_api_key}')\nprint('=== End Header Info ===')\n\n"
+            enhanced_code = header_info + code
+
             # Use async execution for better concurrency
-            result_with_html: CodeExecutionWithHtml = await execute_code_async(code)
+            result_with_html: CodeExecutionWithHtml = await execute_code_async(
+                enhanced_code
+            )
 
             return [
                 types.TextContent(
@@ -293,8 +316,12 @@ async def handle_streamable_http(scope: Scope, receive: Receive, send: Send) -> 
     logger.info(f"Path: {scope.get('path', 'Unknown')}")
     logger.info(f"Query: {scope.get('query_string', b'').decode()}")
 
-    # Log headers
+    # Log headers and store them in context
     headers = dict(scope.get("headers", []))
+    headers_dict = {key.decode(): value.decode() for key, value in headers.items()}
+    request_headers_context.set(headers_dict)
+    logger.info(f"Stored headers in context: {headers_dict}")
+
     for key, value in headers.items():
         logger.info(f"Header {key.decode()}: {value.decode()}")
 
@@ -335,6 +362,11 @@ async def mcp_route_handler(request):
     logger.info(f"Method: {request.method}")
     logger.info(f"Path: {request.url.path}")
     logger.info(f"Headers: {dict(request.headers)}")
+
+    # Extract and store headers in context for use by tools
+    headers_dict = dict(request.headers)
+    request_headers_context.set(headers_dict)
+    logger.info(f"Stored headers in context: {headers_dict}")
 
     # Convert Starlette request to ASGI scope/receive/send
     scope = request.scope
