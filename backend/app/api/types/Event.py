@@ -1,13 +1,13 @@
 import json
 import pickle
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
 
-class EventRole(str, Enum):
+class EventRole(StrEnum):
     USER = "user"
     MODEL = "model"
 
@@ -25,7 +25,7 @@ class FunctionCallModel(BaseModel):
             # If it's already a dict, convert to JSON string or keep as dict
             # depending on your preference - here I'll keep as dict
             return v
-        elif isinstance(v, str):
+        if isinstance(v, str):
             try:
                 # Try to parse as JSON if it's a string
                 return json.loads(v)
@@ -157,6 +157,6 @@ class EventModel(BaseModel):
             if v == "null":
                 return None
             return GroundingMetadata.model_validate_json(v)
-        elif isinstance(v, dict):
+        if isinstance(v, dict):
             return GroundingMetadata.model_validate(v)
         return v

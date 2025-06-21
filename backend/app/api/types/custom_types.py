@@ -34,11 +34,11 @@ class UUIDStr(str):
         )
 
     @classmethod
-    def _validate(cls, value: Any, info) -> str:
+    def _validate(cls, value: Any, _: Any) -> str:
         """Validate and convert to string"""
         if isinstance(value, uuid.UUID):
             return str(value)
-        elif isinstance(value, str):
+        if isinstance(value, str):
             try:
                 # Validate it's a proper UUID
                 uuid.UUID(value)

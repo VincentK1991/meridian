@@ -7,10 +7,10 @@ from .test_openai_tool_agent import search_using_openai_agent
 
 # Export all agents
 __all__ = [
-    "capital_agent_with_tool",
     "calculator_agent",
-    "google_search_agent",
+    "capital_agent_with_tool",
     "coding_agent",
+    "google_search_agent",
     "search_and_execution_agent",
     "search_using_openai_agent",
 ]

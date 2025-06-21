@@ -52,7 +52,7 @@ class GoogleOAuth(BaseOAuth):
         self.integration_type = integration_type
 
     def get_auth_url(self):
-        authorization_url, state = self.flow.authorization_url(
+        authorization_url, _ = self.flow.authorization_url(
             access_type="offline", include_granted_scopes=False, prompt="consent"
         )
         return authorization_url
@@ -70,7 +70,8 @@ class GoogleOAuth(BaseOAuth):
         """
         try:
             print(
-                f"DEBUG: Attempting OAuth with code: {code[:10]}... state: {state[:10]}..."
+                f"DEBUG: Attempting OAuth with code: {code[:10]}... "
+                f"state: {state[:10]}..."
             )
             print(f"DEBUG: Using redirect_uri: {self.config.redirect_uri}")
 
@@ -110,7 +111,7 @@ class GoogleOAuth(BaseOAuth):
             )
 
         except Exception as e:
-            raise Exception(f"Failed to get user info from Google: {str(e)}") from e
+            raise Exception(f"Failed to get user info from Google: {e!s}") from e
 
     async def store_user_info(self, user_info: GoogleUserInfo, db):
         try:
@@ -140,14 +141,15 @@ class GoogleOAuth(BaseOAuth):
                 existing_integrations = user.oauth_integration
 
                 updated_integrations = self.deduplicate_integrations(
-                    existing_integrations + [oauth_integration]
+                    [*existing_integrations, oauth_integration]
                 )
 
                 # Update existing user with new integrations list
                 updated_user = await db.fetchrow(
                     """
                     UPDATE users
-                    SET oauth_integration = $1, updated_at = CURRENT_TIMESTAMP, name = $3
+                    SET oauth_integration = $1,
+                    updated_at = CURRENT_TIMESTAMP, name = $3
                     WHERE email = $2
                     RETURNING *
                 """,
@@ -158,24 +160,24 @@ class GoogleOAuth(BaseOAuth):
                     user_info.name,  # Update name from Google
                 )
                 return User(**updated_user)
-            else:
-                # Insert new user with Google integration as first item in list
-                new_user = await db.fetchrow(
-                    """
-                    INSERT INTO users (email, oauth_integration, name, created_at, updated_at)
+            # Insert new user with Google integration as first item in list
+            new_user = await db.fetchrow(
+                """
+                    INSERT INTO users
+                    (email, oauth_integration, name, created_at, updated_at)
                     VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                     RETURNING *
                 """,
-                    user_info.email,
-                    [
-                        oauth_integration.model_dump(mode="json")
-                    ],  # Use mode='json' for datetime serialization
-                    user_info.name,
-                )
-                return User(**new_user)
+                user_info.email,
+                [
+                    oauth_integration.model_dump(mode="json")
+                ],  # Use mode='json' for datetime serialization
+                user_info.name,
+            )
+            return User(**new_user)
 
         except Exception as e:
-            raise Exception(f"Failed to store user info in database: {str(e)}") from e
+            raise Exception(f"Failed to store user info in database: {e!s}") from e
 
     def refresh_access_token(self, refresh_token: str):
         """
@@ -191,7 +193,7 @@ class GoogleOAuth(BaseOAuth):
         """
         import requests
 
-        token_url = "https://oauth2.googleapis.com/token"
+        token_url = "https://oauth2.googleapis.com/token"  # noqa: S105
 
         payload = {
             "grant_type": "refresh_token",
@@ -201,7 +203,7 @@ class GoogleOAuth(BaseOAuth):
         }
 
         try:
-            response = requests.post(token_url, data=payload)
+            response = requests.post(token_url, data=payload, timeout=30)
             response.raise_for_status()
 
             token_data = response.json()
@@ -215,7 +217,7 @@ class GoogleOAuth(BaseOAuth):
             }
 
         except requests.RequestException as e:
-            raise Exception(f"Failed to refresh Google access token: {str(e)}") from e
+            raise Exception(f"Failed to refresh Google access token: {e!s}") from e
 
     def store_access_token(self, access_token: str):
         """Store the access token"""

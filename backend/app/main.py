@@ -13,10 +13,9 @@ app = FastAPI()
 
 # Custom exception handler for HTTPException
 @app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
+def http_exception_handler(request: Request, exc: HTTPException):
     print(f"HTTPException: {exc.status_code} - {exc.detail}")
     print(f"Request: {request.method} {request.url}")
-    # print(f"Headers: {dict(request.headers)}")
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 
@@ -40,4 +39,4 @@ async def test(db=Depends(get_postgres)):
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="localhost", port=8000, reload=True)

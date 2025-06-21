@@ -13,7 +13,7 @@ router = APIRouter(prefix="/session", tags=["session"])
 @router.get("/users/{user_id}/sessions", response_model=list[Session])
 async def get_all_sessions(
     user_id: str,
-    user: User = Depends(get_current_user),
+    _: User = Depends(get_current_user),
     db=Depends(get_postgres),
 ):
     sessions_list = await sessions.get_all_sessions(user_id, db)
@@ -23,7 +23,7 @@ async def get_all_sessions(
 @router.get("/sessions/{session_id}/events", response_model=list[EventModel])
 async def get_session(
     session_id: str,
-    user: User = Depends(get_current_user),
+    _: User = Depends(get_current_user),
     db=Depends(get_postgres),
 ):
     session_list = await sessions.get_session(session_id, db)

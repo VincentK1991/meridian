@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, Response
 from pydantic import BaseModel
 
 from app.api.services import auth
@@ -22,7 +22,7 @@ class CurrentUserResponse(BaseModel):
 
 
 @router.get("/google/url")
-async def get_google_auth_url(request: Request):
+async def get_google_auth_url():
     """
     Generates Google OAuth authorization URL for client-side redirect.
 
@@ -45,7 +45,6 @@ async def get_google_auth_url(request: Request):
 
 @router.post("/google/callback", response_model=CurrentUserResponse)
 async def google_auth_callback(
-    request: Request,
     response: Response,
     callback_data: GoogleCallback,
     db=Depends(get_postgres),
@@ -82,9 +81,9 @@ async def google_auth_callback(
         callback_data.code, callback_data.state
     )
     user = await google_profile_oauth.store_user_info(google_user_info, db)
-    access_token = await auth.create_access_token(user)
-    refresh_token = await auth.create_refresh_token(user)
-    await auth.set_response_cookies(response, access_token, refresh_token)
+    access_token = auth.create_access_token(user)
+    refresh_token = auth.create_refresh_token(user)
+    auth.set_response_cookies(response, access_token, refresh_token)
 
     return CurrentUserResponse(user_id=user.user_id, email=user.email, name=user.name)
 
@@ -112,7 +111,7 @@ async def refresh_me(current_user=Depends(get_current_user)):
 
 
 @router.post("/logout")
-async def logout(request: Request, response: Response):
+async def logout(response: Response):
     """
     Logs out the current user.
     """

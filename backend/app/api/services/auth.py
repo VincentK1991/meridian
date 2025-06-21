@@ -43,7 +43,7 @@ async def get_current_user(
         )
 
     try:
-        access_token_payload = await verify_token(access_token)
+        access_token_payload = verify_token(access_token)
         user_id: str = access_token_payload.get("user_id")
 
         # Check if access token is expired
@@ -55,31 +55,30 @@ async def get_current_user(
                 raise HTTPException(status_code=401, detail="Unauthorized unknown user")
             return User(**dict(user))
 
-        else:
-            # Access token is expired, check refresh token
-            refresh_token_payload = await verify_token(refresh_token)
-            email: str = refresh_token_payload.get("email")
-            user_id: str = refresh_token_payload.get("user_id")
+        # Access token is expired, check refresh token
+        refresh_token_payload = verify_token(refresh_token)
+        email: str = refresh_token_payload.get("email")
+        user_id: str = refresh_token_payload.get("user_id")
 
-            # Check if refresh token is expired
-            exp = refresh_token_payload.get("exp")
-            if exp and datetime.fromtimestamp(exp, tz=UTC) <= datetime.now(UTC):
-                # Refresh token is also expired
-                raise HTTPException(
-                    status_code=401, detail="Unauthorized refresh token expired"
-                )
+        # Check if refresh token is expired
+        exp = refresh_token_payload.get("exp")
+        if exp and datetime.fromtimestamp(exp, tz=UTC) <= datetime.now(UTC):
+            # Refresh token is also expired
+            raise HTTPException(
+                status_code=401, detail="Unauthorized refresh token expired"
+            )
 
-            # Refresh token is valid, get user and create new access token
-            user = await db.fetchrow("SELECT * FROM users WHERE email = $1", email)
-            if not user:
-                raise HTTPException(status_code=401, detail="Unauthorized unknown user")
-            user_obj = User(**dict(user))
+        # Refresh token is valid, get user and create new access token
+        user = await db.fetchrow("SELECT * FROM users WHERE email = $1", email)
+        if not user:
+            raise HTTPException(status_code=401, detail="Unauthorized unknown user")
+        user_obj = User(**dict(user))
 
-            # Create new access token (this would typically be set in response cookies)
-            new_access_token = await create_access_token(user_obj)
-            await set_response_cookies(response, new_access_token, refresh_token)
+        # Create new access token (this would typically be set in response cookies)
+        new_access_token = await create_access_token(user_obj)
+        set_response_cookies(response, new_access_token, refresh_token)
 
-            return user_obj
+        return user_obj
 
     except jwt.JWTError:
         raise HTTPException(
@@ -87,7 +86,7 @@ async def get_current_user(
         ) from None
 
 
-async def create_access_token(user: User):
+def create_access_token(user: User):
     access_token_payload = {
         "user_id": user.user_id,
         "email": user.email,
@@ -102,7 +101,7 @@ async def create_access_token(user: User):
     return access_token
 
 
-async def create_refresh_token(user: User):
+def create_refresh_token(user: User):
     refresh_token_payload = {
         "user_id": user.user_id,
         "email": user.email,
@@ -117,7 +116,7 @@ async def create_refresh_token(user: User):
     return refresh_token
 
 
-async def verify_token(token: str):
+def verify_token(token: str):
     try:
         payload = jwt.decode(
             token,
@@ -127,12 +126,10 @@ async def verify_token(token: str):
         )
         return payload
     except jwt.JWTError:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        raise HTTPException(status_code=401, detail="Unauthorized") from None
 
 
-async def set_response_cookies(
-    response: Response, access_token: str, refresh_token: str
-):
+def set_response_cookies(response: Response, access_token: str, refresh_token: str):
     response.set_cookie(
         "access_token",
         access_token,

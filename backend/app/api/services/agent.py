@@ -9,7 +9,7 @@ from app.config import settings
 
 # Example using a local PostgreSQL database:
 db_user = "postgres"
-db_password = "password123"
+db_password = "password123"  # noqa: S105
 db_host = "localhost"
 db_port = "5432"
 db_name = "postgres"

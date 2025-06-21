@@ -16,7 +16,7 @@ fake = Faker()
 
 # Example using a local PostgreSQL database:
 db_user = "postgres"
-db_password = "password123"
+db_password = "password123"  # noqa: S105
 db_host = "localhost"
 db_port = "5432"
 db_name = "postgres"
@@ -75,8 +75,6 @@ async def main():
     session_id = str(uuid.uuid4())
     runner = Runner(
         # Start with the info capture agent
-        # agent=mcp_agent,
-        # agent=google_search_agent,
         agent=search_using_openai_agent,
         app_name=app_name,
         session_service=session_service,

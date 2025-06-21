@@ -15,7 +15,9 @@ async def create_new_session(user_id: str, db: asyncpg.Connection):
     session_id = str(uuid.uuid4())
     title = fake.catch_phrase().replace(" ", "-")
     query = """
-        INSERT INTO sessions (app_name, user_id, id, state, create_time, update_time, title)
+        INSERT INTO sessions (
+            app_name, user_id, id, state, create_time, update_time, title
+        )
         VALUES ($1, $2, $3, $4, $5, $6, $7)
         """
     await db.execute(

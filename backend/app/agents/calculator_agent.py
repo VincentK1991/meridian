@@ -17,7 +17,7 @@ def roll_die(sides: int, tool_context: ToolContext) -> int:
     Returns:
       An integer of the result of rolling the die.
     """
-    result = random.randint(1, sides)
+    result = random.randint(1, sides)  # noqa: S311
     if "rolls" not in tool_context.state:
         tool_context.state["rolls"] = []
 
@@ -25,7 +25,7 @@ def roll_die(sides: int, tool_context: ToolContext) -> int:
     return result
 
 
-async def check_prime(nums: list[int]) -> str:
+def check_prime(nums: list[int]) -> str:
     """Check if a given list of numbers are prime.
 
     Args:

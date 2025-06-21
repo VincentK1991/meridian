@@ -26,7 +26,8 @@ class UUIDStringMixin:
 
     - Validates UUID inputs (accepts UUID objects or valid UUID strings)
     - Stores UUIDs as strings in the model (not UUID objects)
-    - Works with any field that has 'uuid' in its name or is annotated with Union[str, uuid.UUID]
+    - Works with any field that has 'uuid' in its name or is annotated with
+    Union[str, uuid.UUID]
 
     Usage:
         class MyModel(BaseModel, UUIDStringMixin):
@@ -76,7 +77,7 @@ class UUIDStringMixin:
         if should_validate_uuid:
             if isinstance(v, uuid.UUID):
                 return str(v)  # Convert UUID object to string
-            elif isinstance(v, str):
+            if isinstance(v, str):
                 try:
                     # Validate that it's a valid UUID string
                     uuid.UUID(v)
@@ -165,7 +166,8 @@ class JSONParsingMixin:
                 try:
                     return json.loads(v)
                 except json.JSONDecodeError:
-                    # If it's not valid JSON, return as-is and let Pydantic handle validation
+                    # If it's not valid JSON, return as-is
+                    # and let Pydantic handle validation
                     return v
 
         return v

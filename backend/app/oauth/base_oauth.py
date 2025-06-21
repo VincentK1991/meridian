@@ -25,7 +25,8 @@ class BaseOAuth(ABC):
         # Create a dictionary to store the latest integration for each type
         latest_integrations = {}
 
-        # Iterate through integrations and keep the one with latest expires_at for each type
+        # Iterate through integrations
+        # and keep the one with latest expires_at for each type
         for integration in integrations:
             integration_type = integration.integration
             if (
