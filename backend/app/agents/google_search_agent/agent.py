@@ -1,7 +1,7 @@
 from google.adk.agents import Agent
 from google.adk.tools import google_search
 
-google_search_agent = Agent(
+root_agent = Agent(
     name="basic_search_agent",
     model="gemini-2.0-flash",
     description="Agent to answer questions using Google Search.",

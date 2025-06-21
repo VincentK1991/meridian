@@ -53,7 +53,7 @@ def check_prime(nums: list[int]) -> str:
     )
 
 
-calculator_agent = Agent(
+root_agent = Agent(
     model="gemini-2.0-flash",
     name="mcp_agent",
     description=("mcp agent that can call mcp tools."),

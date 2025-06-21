@@ -1,7 +1,7 @@
 from google.adk.agents import Agent
 from google.adk.code_executors import BuiltInCodeExecutor
 
-coding_agent = Agent(
+root_agent = Agent(
     model="gemini-2.0-flash",
     name="CodeAgent",
     instruction="""

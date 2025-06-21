@@ -47,7 +47,7 @@ def get_capital_city(country: str) -> str:
 # --- 4. Configure Agents ---
 
 # Agent 1: Uses a tool and output_key
-capital_agent_with_tool = LlmAgent(
+root_agent = LlmAgent(
     model="gemini-2.0-flash",
     name="capital_agent_tool",
     description="Retrieves the capital city using a specific tool.",

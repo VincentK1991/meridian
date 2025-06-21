@@ -1,10 +1,9 @@
 from google.adk.agents import Agent
 from google.adk.tools import agent_tool
 
-from .code_execution_agent import coding_agent
-from .google_search_agent import google_search_agent
+from app.agents import coding_agent, google_search_agent
 
-search_and_execution_agent = Agent(
+root_agent = Agent(
     model="gemini-2.0-flash",
     name="SearchAndExecutionAgent",
     instruction="""
