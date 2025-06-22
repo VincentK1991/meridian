@@ -9,3 +9,8 @@ export interface SessionCreate {
     user_id: string;
     session_id: string;
 }
+
+export interface SessionDelete {
+    session_id: string;
+    message: string;
+}

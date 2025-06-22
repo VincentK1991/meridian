@@ -44,9 +44,14 @@ async def get_session(session_id: str, db: asyncpg.Connection) -> list[EventMode
     return [EventModel(**row) for row in result]
 
 
-async def delete_session(session_id: str):
-    # TODO: Implement session deletion
-    pass
+async def delete_session(session_id: str, db: asyncpg.Connection) -> bool:
+    query = """
+        UPDATE sessions
+        SET is_deleted = TRUE
+        WHERE id = $1
+        """
+    await db.execute(query, session_id)
+    return True
 
 
 async def get_all_sessions(user_id: str, db: asyncpg.Connection) -> list[Session]:
@@ -55,7 +60,7 @@ async def get_all_sessions(user_id: str, db: asyncpg.Connection) -> list[Session
         FROM sessions AS s
         LEFT JOIN users AS u
         ON uuid(s.user_id) = u.user_id
-        WHERE u.user_id = $1
+        WHERE u.user_id = $1 AND s.is_deleted = FALSE
         ORDER BY s.update_time DESC
         """
     result = await db.fetch(query, user_id)

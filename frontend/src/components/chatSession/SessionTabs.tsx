@@ -1,6 +1,8 @@
 import { useCreateSession } from '../../hooks/useSession';
 import type { Session } from '../../types/session';
 import { useQueryClient } from '@tanstack/react-query';
+import { SessionDeleteConfirmationModal } from './SessionDeleteConfirmationModal';
+import { useState } from 'react';
 
 interface SessionTabsProps {
     sessions: Session[];
@@ -21,6 +23,10 @@ export default function SessionTabs({
 }: SessionTabsProps) {
     const createSessionMutation = useCreateSession();
     const queryClient = useQueryClient();
+
+    // State for delete confirmation modal
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [sessionToDelete, setSessionToDelete] = useState<{id: string, title?: string} | null>(null);
 
     const handleNewSession = async () => {
         try {
@@ -44,6 +50,35 @@ export default function SessionTabs({
         } catch (error) {
             console.error('Failed to create new session:', error);
         }
+    };
+
+    const handleDeleteClick = (sessionId: string, sessionTitle?: string) => {
+        setSessionToDelete({ id: sessionId, title: sessionTitle });
+        setDeleteModalOpen(true);
+    };
+
+    const handleDeleteSuccess = () => {
+        // If we're deleting the currently active session, we might want to navigate away
+        if (sessionToDelete?.id === activeSessionId && sessions.length > 1) {
+            // Find another session to switch to
+            const otherSession = sessions.find(s => s.id !== sessionToDelete.id);
+            if (otherSession) {
+                onSessionSelect(otherSession.id);
+            }
+        }
+
+        // Reset the delete modal state
+        setSessionToDelete(null);
+
+        // Call the original onSessionClose if provided (for any additional cleanup)
+        if (onSessionClose && sessionToDelete?.id) {
+            onSessionClose(sessionToDelete.id);
+        }
+    };
+
+    const handleDeleteModalClose = () => {
+        setDeleteModalOpen(false);
+        setSessionToDelete(null);
     };
 
     return (
@@ -81,17 +116,16 @@ export default function SessionTabs({
                                     <span className="truncate text-sm font-medium">
                                         {session.title || `Session ${session.id.slice(0, 8)}...`}
                                     </span>
-                                    {onSessionClose && (
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                onSessionClose(session.id);
-                                            }}
-                                            className="text-zinc-700/60 hover:text-red-400 transition-colors ml-2 hover:bg-red-500/20 rounded px-1"
-                                        >
-                                            ×
-                                        </button>
-                                    )}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteClick(session.id, session.title);
+                                        }}
+                                        className="text-zinc-700/60 hover:text-red-400 transition-colors ml-2 hover:bg-red-500/20 rounded px-1"
+                                        title="Delete session"
+                                    >
+                                        ×
+                                    </button>
                                 </div>
                                 <div className={`text-xs mt-1 ${
                                     session.id === activeSessionId ? 'text-zinc-700/80' : 'text-zinc-700/60'
@@ -108,6 +142,15 @@ export default function SessionTabs({
                     </div>
                 )}
             </div>
+
+            {/* Delete Confirmation Modal */}
+            <SessionDeleteConfirmationModal
+                isOpen={deleteModalOpen}
+                onClose={handleDeleteModalClose}
+                sessionId={sessionToDelete?.id || ''}
+                sessionTitle={sessionToDelete?.title}
+                onDeleteSuccess={handleDeleteSuccess}
+            />
         </div>
     );
 }

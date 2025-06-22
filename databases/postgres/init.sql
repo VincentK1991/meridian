@@ -9,7 +9,7 @@ CREATE TABLE users (
     email VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
     oauth_integration JSON,
-    CONSTRAINT users_email_unique UNIQUE (email)
+    CONSTRAINT users_email_unique UNIQUE (email),
 );
 
 -- Add oauth_integration column to users table (optional JSON field)
@@ -38,8 +38,11 @@ CREATE TABLE users (
 --    session_name VARCHAR(255) NOT NULL DEFAULT 'New Chat',
 --    is_active BOOLEAN NOT NULL DEFAULT TRUE,
 --    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---    last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+--    last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--    is_deleted BOOLEAN DEFAULT FALSE
 --);
+-- ALTER TABLE sessions ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
+
 
 -- Create messages table
 -- CREATE TABLE messages (

@@ -1,6 +1,6 @@
 import { createApiClient } from './baseApiClient';
 import type { EventModel } from '../types/event';
-import type { Session, SessionCreate } from '../types/session';
+import type { Session, SessionCreate, SessionDelete } from '../types/session';
 
 export const sessionApi = {
 
@@ -25,6 +25,11 @@ export const sessionApi = {
     createSession: async (): Promise<SessionCreate> => {
         const response = await createApiClient('/session').post(`/create`);
 
+        return response.data;
+    },
+
+    deleteSession: async (session_id: string): Promise<SessionDelete> => {
+        const response = await createApiClient('/session').delete(`/sessions/${session_id}/delete`);
         return response.data;
     },
 

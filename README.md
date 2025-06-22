@@ -20,7 +20,7 @@ This project is a monorepo containing a FastAPI backend and a React frontend.
 
 3.  Create a virtual environment:
     ```bash
-    uv venv
+    python3.12 -m venv .venv
     ```
 
 4.  Activate the virtual environment:
@@ -34,11 +34,21 @@ This project is a monorepo containing a FastAPI backend and a React frontend.
     uv pip install -e .
     ```
 
-6.  Run the backend server:
+6.  to update the environment from existing uv pyproject.toml
+    ```bash
+    uv sync
+    ```
+
+7.  Run the backend server:
     ```bash
     uvicorn app.main:app --reload
     ```
     The backend will be running at `http://127.0.0.1:8000`.
+
+8. ro run pre-commit hook to check linting:
+    ```bash
+    pre-commit run --all-files
+    ```
 
 ### Frontend
 
@@ -56,4 +66,4 @@ This project is a monorepo containing a FastAPI backend and a React frontend.
     ```bash
     npm run dev
     ```
-    The frontend will be running at `http://localhost:5173`. 
+    The frontend will be running at `http://localhost:5173`.

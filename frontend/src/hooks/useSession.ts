@@ -58,3 +58,19 @@ export const useCreateSession = () => {
         }
     });
 };
+
+export const useDeleteSession = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (session_id: string) => sessionApi.deleteSession(session_id),
+        onSuccess: (data) => {
+            console.log('Session deleted successfully:', data);
+            // Invalidate sessions query to refetch the list
+            queryClient.invalidateQueries({ queryKey: ['sessions'] });
+        },
+        onError: (error) => {
+            console.error('Error deleting session:', error);
+        }
+    });
+};

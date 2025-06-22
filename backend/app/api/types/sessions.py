@@ -10,6 +10,11 @@ class SessionCreate(BaseModel):
     session_id: UUIDStr
 
 
+class SessionDelete(BaseModel):
+    session_id: UUIDStr
+    message: str
+
+
 class Session(BaseModel):
     id: UUIDStr
     create_time: datetime
