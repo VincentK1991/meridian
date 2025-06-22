@@ -102,7 +102,8 @@ async def execute_code_async(code: str) -> CodeExecutionResult:
         code: The Python code string to execute (can use await syntax)
 
     Returns:
-        CodeExecutionResult: Object containing the code, captured output, and success status
+        CodeExecutionResult: Object containing the code, captured output,
+        and success status
     """
     return await _execute_async_code(code)
 
@@ -118,15 +119,19 @@ def execute_code(code: str) -> CodeExecutionResult:
         code: The Python code string to execute
 
     Returns:
-        CodeExecutionResult: Object containing the code, captured output, and success status
+        CodeExecutionResult: Object containing the code, captured output,
+        and success status
     """
     # If we're already in an event loop, we can't use asyncio.run()
     try:
-        loop = asyncio.get_running_loop()
+        _ = asyncio.get_running_loop()
         # We're in an async context, this shouldn't be called
         return CodeExecutionResult(
             code=code,
-            print_output="Error: execute_code() called from async context. Use execute_code_async() instead.",
+            print_output=(
+                "Error: execute_code() called from async context. "
+                "Use execute_code_async() instead."
+            ),
             success=False,
         )
     except RuntimeError:
@@ -147,11 +152,10 @@ async def execute_code_with_sync_fallback(code: str) -> CodeExecutionResult:
         if "await" in str(e):
             # If it's an await syntax error, the code might be sync
             return await _execute_sync_code_fallback(code)
-        else:
-            # Other syntax errors should be reported
-            return CodeExecutionResult(
-                code=code, print_output=f"Syntax error: {str(e)}", success=False
-            )
+        # Other syntax errors should be reported
+        return CodeExecutionResult(
+            code=code, print_output=f"Syntax error: {str(e)}", success=False
+        )
 
 
 async def _execute_sync_code_fallback(code: str) -> CodeExecutionResult:

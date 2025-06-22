@@ -16,7 +16,7 @@ from starlette.types import Receive, Scope, Send
 logger = logging.getLogger(__name__)
 
 # Context variable to store request headers for use in tools
-request_headers_context: ContextVar[dict] = ContextVar("request_headers", default={})
+request_headers_context: ContextVar[dict] = ContextVar("request_headers", default=None)
 
 
 def create_message_prompt(
@@ -304,7 +304,7 @@ async def list_tools() -> list[types.Tool]:
 
 @mcp_server.get_prompt()
 async def get_prompt(
-    name: str, arguments: dict[str, str] | None = None
+    name: str, _: dict[str, str] | None = None
 ) -> types.GetPromptResult:
     if name != "execute_code" and name != "execute_code_with_html":
         raise ValueError(f"Unknown prompt: {name}")
@@ -375,7 +375,7 @@ async def handle_streamable_http(scope: Scope, receive: Receive, send: Send) -> 
 
 
 @contextlib.asynccontextmanager
-async def lifespan(app: Starlette) -> AsyncIterator[None]:
+async def lifespan(_: Starlette) -> AsyncIterator[None]:
     """Context manager for session manager."""
     async with session_manager.run():
         logger.info("=== MCP Server Started ===")
@@ -459,7 +459,7 @@ app = Starlette(
 def main(
     port: int = 8001,
     log_level: str = "INFO",
-    json_response: bool = True,
+    _: bool = True,
     reload: bool = False,
 ) -> int:
     # Configure logging
@@ -476,14 +476,14 @@ def main(
         # For reload to work, we need to pass the app as an import string
         uvicorn.run(
             "server:app",
-            host="0.0.0.0",
+            host="0.0.0.0",  # noqa: S104
             port=port,
             log_level="info",
             reload=True,
         )
     else:
         # Normal mode - pass the app object directly
-        uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
+        uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")  # noqa: S104
 
     return 0
 
@@ -541,7 +541,9 @@ curl -X POST http://localhost:8001/mcp \
     "params": {
       "name": "execute_code",
       "arguments": {
-        "code": "result = 2 + 2\nprint(f\"Result: {result}\")\nprint(\"Calculation complete!\")"
+        "code": "result = 2 + 2\n"
+               "print(f\"Result: {result}\")\n"
+               "print(\"Calculation complete!\")"
       }
     }
   }'
@@ -558,8 +560,11 @@ curl -X POST http://localhost:8001/mcp \
     "params": {
       "name": "execute_code",
       "arguments": {
-        "code": "import asyncio\nprint(\"Starting async task...\")\nawait asyncio.sleep(0.5)\nprint(\"Async task completed!\")"
-      }
+            "code": "import asyncio\n"
+                    "print(\"Starting async task...\")\n"
+                    "await asyncio.sleep(0.5)\n"
+                    "print(\"Async task completed!\")"
+        }
     }
   }'
 
@@ -575,10 +580,13 @@ curl -X POST http://localhost:8001/mcp \
     "params": {
       "name": "execute_code_with_html",
       "arguments": {
-        "code": "print(\"HTML-enabled execution\")\ndata = {\"message\": \"Hello HTML!\", \"numbers\": [1, 2, 3]}\nprint(f\"Data: {data}\")"
+        "code": "print(\"HTML-enabled execution\")\n"
+                "data = {\"message\": \"Hello HTML!\", \"numbers\": [1, 2, 3]}\n"
+                "print(f\"Data: {data}\")"
       }
     }
   }'
 
-Note: When including quotes in the code string, use double quotes (\") instead of single quotes (') to avoid JSON parsing errors.
+Note: When including quotes in the code string, use double quotes (\")
+instead of single quotes (') to avoid JSON parsing errors.
 """

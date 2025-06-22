@@ -49,7 +49,7 @@ def create_messages(
 def main(
     port: int = 8001,
     log_level: str = "INFO",
-    json_response: bool = True,
+    _: bool = True,
 ) -> int:
     # Configure logging
     logging.basicConfig(
@@ -117,7 +117,10 @@ def main(
         return [
             types.Tool(
                 name="calculate",
-                description="Perform basic arithmetic operations (add, subtract, multiply, divide)",
+                description=(
+                    "Perform basic arithmetic operations "
+                    "(add, subtract, multiply, divide)"
+                ),
                 inputSchema={
                     "type": "object",
                     "required": ["operation", "a", "b"],
@@ -217,7 +220,7 @@ def main(
             await session_manager.handle_request(scope, receive, send)
 
     @contextlib.asynccontextmanager
-    async def lifespan(app: Starlette) -> AsyncIterator[None]:
+    async def lifespan(_: Starlette) -> AsyncIterator[None]:
         """Context manager for session manager."""
         async with session_manager.run():
             logger.info("=== MCP Server Started ===")
@@ -321,7 +324,7 @@ def main(
     import uvicorn
 
     logger.info(f"Starting server on http://0.0.0.0:{port}")
-    uvicorn.run(starlette_app, host="0.0.0.0", port=port, log_level="info")
+    uvicorn.run(starlette_app, host="0.0.0.0", port=port, log_level="info")  # noqa: S104
 
     return 0
 
@@ -387,6 +390,6 @@ curl -X POST http://localhost:8001/mcp \
     "params": {}
   }'
 
-  
+
 
 """

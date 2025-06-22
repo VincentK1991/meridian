@@ -64,6 +64,9 @@ ignore = [
     "ARG002", # Unused method argument (common in overrides)
     "S403", # Use of unsafe pickle.loads
     "S301", # Use of unsafe pickle
+    "RUF029", # Function `async`, but doesn't `await` or use `async` features.
+    "RUF010", # explicit-f-string-type-conversion
+    "S102", # Use of unsafe host value
 ]
 
 [tool.ruff.format]

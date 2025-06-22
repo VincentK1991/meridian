@@ -1,6 +1,7 @@
 from .calculator_agent import calculator_agent
 from .code_execution_agent import coding_agent
 from .google_search_agent import google_search_agent
+from .graph_search_agent import create_session_with_search_context, graph_search_agent
 from .openAI_agents import openai_agent_as_tool, web_search_agent
 from .search_and_execution_agent import search_and_execution_agent
 from .test_agent import capital_agent_with_tool
@@ -11,7 +12,9 @@ __all__ = [
     "calculator_agent",
     "capital_agent_with_tool",
     "coding_agent",
+    "create_session_with_search_context",
     "google_search_agent",
+    "graph_search_agent",
     "openai_agent_as_tool",
     "search_and_execution_agent",
     "search_using_openai_agent",
