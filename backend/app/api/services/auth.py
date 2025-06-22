@@ -75,7 +75,7 @@ async def get_current_user(
         user_obj = User(**dict(user))
 
         # Create new access token (this would typically be set in response cookies)
-        new_access_token = await create_access_token(user_obj)
+        new_access_token = create_access_token(user_obj)
         set_response_cookies(response, new_access_token, refresh_token)
 
         return user_obj
