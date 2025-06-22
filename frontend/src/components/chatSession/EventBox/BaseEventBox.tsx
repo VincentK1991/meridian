@@ -12,11 +12,11 @@ export const BaseEventBox: React.FC<BaseEventBoxProps & { children: React.ReactN
   const hasMetadata = event.grounding_metadata !== null;
 
   return (
-    <div className={`mb-4 ${className}`} id={`event-${event.id}`}>
-      <div className="rounded-lg backdrop-blur-md border border-white/20 shadow-lg">
+    <div className={`mb-6 ${className}`} id={`event-${event.id}`}>
+      <div className="liquid-glass-event liquid-refraction">
         {/* Tabs */}
         {hasMetadata && (
-          <div className="flex gap-2 p-4 border-b border-white/20">
+          <div className="flex gap-3 p-4 border-b border-white/10">
             <Tab isActive={activeTab === 'content'} onClick={() => setActiveTab('content')}>
               Content
             </Tab>
@@ -27,11 +27,15 @@ export const BaseEventBox: React.FC<BaseEventBoxProps & { children: React.ReactN
         )}
 
         {/* Content */}
-        {activeTab === 'content' && children}
+        {activeTab === 'content' && (
+          <div className="liquid-refraction">
+            {children}
+          </div>
+        )}
 
         {/* Metadata */}
         {activeTab === 'metadata' && hasMetadata && (
-          <div className="p-4">
+          <div className="p-4 liquid-refraction">
             <MetadataContent metadata={event.grounding_metadata!} />
           </div>
         )}
