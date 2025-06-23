@@ -12,6 +12,9 @@ class Integration(Enum):
     GOOGLE = "google"
     GITHUB = "github"
     MICROSOFT = "microsoft"
+    CALENDAR = "calendar"
+    DRIVE = "drive"
+    GMAIL = "gmail"
 
 
 class OAuthIntegration(BaseModel, TimestampMixin):

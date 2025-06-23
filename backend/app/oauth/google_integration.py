@@ -1,36 +1,18 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from google.auth.transport import requests
 from google.oauth2 import id_token
 from google_auth_oauthlib.flow import Flow
-from pydantic import BaseModel
 
 from app.api.types.users import Integration, OAuthIntegration, User
 from app.config import settings
+from app.connectors.postgres import PostgreSQLConnector
 from app.oauth.base_oauth import BaseOAuth
 
-
-class GoogleConfig(BaseModel):
-    client_id: str
-    client_secret: str
-    redirect_uri: str
-    scopes: list[str]
+from .google_identity import GoogleConfig, GoogleUserInfo
 
 
-class GoogleUserInfo(BaseModel):
-    id: str
-    email: str
-    name: str
-    picture: str
-    email_verified: bool
-    access_token: str
-    refresh_token: str
-    id_token: str
-    expires_at: str | None = None  # Can be None if no expiry
-    scopes: list[str]
-
-
-class GoogleOAuth(BaseOAuth):
+class GoogleIntegrationOAuth(BaseOAuth):
     def __init__(self, config: GoogleConfig, integration_type: Integration):
         super().__init__(integration_type)
         self.config = config
@@ -113,7 +95,9 @@ class GoogleOAuth(BaseOAuth):
         except Exception as e:
             raise Exception(f"Failed to get user info from Google: {e!s}") from e
 
-    async def store_user_info(self, user_info: GoogleUserInfo, db):
+    async def store_user_info(
+        self, user_info: GoogleUserInfo, current_user: User, db: PostgreSQLConnector
+    ):
         try:
             # Prepare OAuth integration data as JSON
             oauth_integration = OAuthIntegration(
@@ -130,51 +114,29 @@ class GoogleOAuth(BaseOAuth):
                 updated_at=datetime.now(UTC),
             )
 
-            # Check if user already exists
-            user = await db.fetchrow(
-                "SELECT * FROM users WHERE email = $1", user_info.email
+            # Get existing integrations
+            existing_integrations = current_user.oauth_integration
+
+            updated_integrations = self.deduplicate_integrations(
+                [*existing_integrations, oauth_integration]
             )
 
-            if user:
-                # Get existing integrations
-                user = User(**user)
-                existing_integrations = user.oauth_integration
-
-                updated_integrations = self.deduplicate_integrations(
-                    [*existing_integrations, oauth_integration]
-                )
-
-                # Update existing user with new integrations list
-                updated_user = await db.fetchrow(
-                    """
-                    UPDATE users
-                    SET oauth_integration = $1,
-                    updated_at = CURRENT_TIMESTAMP, name = $3
-                    WHERE email = $2
-                    RETURNING *
-                """,
-                    [
-                        i.model_dump(mode="json") for i in updated_integrations
-                    ],  # Use mode='json' for datetime serialization
-                    user_info.email,
-                    user_info.name,  # Update name from Google
-                )
-                return User(**updated_user)
-            # Insert new user with Google integration as first item in list
-            new_user = await db.fetchrow(
+            # Update existing user with new integrations list
+            updated_user = await db.fetchrow(
                 """
-                    INSERT INTO users
-                    (email, oauth_integration, name, created_at, updated_at)
-                    VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                    RETURNING *
-                """,
-                user_info.email,
+                UPDATE users
+                SET oauth_integration = $1,
+                updated_at = CURRENT_TIMESTAMP, name = $3
+                WHERE email = $2
+                RETURNING *
+            """,
                 [
-                    oauth_integration.model_dump(mode="json")
+                    i.model_dump(mode="json") for i in updated_integrations
                 ],  # Use mode='json' for datetime serialization
-                user_info.name,
+                user_info.email,
+                user_info.name,  # Update name from Google
             )
-            return User(**new_user)
+            return User(**updated_user)
 
         except Exception as e:
             raise Exception(f"Failed to store user info in database: {e!s}") from e
@@ -219,25 +181,134 @@ class GoogleOAuth(BaseOAuth):
         except requests.RequestException as e:
             raise Exception(f"Failed to refresh Google access token: {e!s}") from e
 
-    def store_access_token(self, access_token: str):
+    async def store_access_token(
+        self,
+        access_token: str,
+        integration_type: Integration,
+        expires_at: datetime,
+        current_user: User,
+        db: PostgreSQLConnector,
+    ):
         """Store the access token"""
-        NotImplementedError("Not implemented")
+        update_access_token_query = """
+        UPDATE users
+        SET oauth_integration = (
+            SELECT json_agg(
+                CASE
+                    WHEN elem->>'integration' = $1
+                    THEN json_build_object(
+                        'created_at', elem->>'created_at',
+                        'updated_at', elem->>'updated_at',
+                        'integration', elem->>'integration',
+                        'scope', elem->'scope',
+                        'access_token', $3,
+                        'refresh_token', elem->>'refresh_token',
+                        'expires_at', $4
+                    )
+                    ELSE elem
+                END
+            )
+            FROM json_array_elements(oauth_integration) AS elem
+        )
+        WHERE user_id = $2;
+        """  # noqa: S105
+        await db.execute(
+            update_access_token_query,
+            integration_type,
+            current_user.user_id,
+            access_token,
+            expires_at,
+        )
 
     def store_refresh_token(self, refresh_token: str):
         """Store the refresh token"""
         NotImplementedError("Not implemented")
 
+    async def check_valid_integration(
+        self, google_integration: str, current_user: User, db: PostgreSQLConnector
+    ):
+        """
+        Refresh the access token using the refresh token
 
-google_profile_oauth = GoogleOAuth(
+        Args:
+            refresh_token: The refresh token from the initial OAuth flow
+            client_id: Google OAuth client ID
+            client_secret: Google OAuth client secret
+
+        Returns:
+            dict: New access token and related information
+        """
+        find_integration_query = """
+        SELECT elem.*
+        FROM users u,
+            json_array_elements(u.oauth_integration) AS elem
+        WHERE u.user_id = $1
+        AND elem->>'integration' = $2;
+        """
+        check_integration = await db.fetchrow(
+            find_integration_query,
+            current_user.user_id,
+            google_integration,
+        )
+        if check_integration:
+            oauth_integration = OAuthIntegration(**check_integration)
+        else:
+            return False
+
+        if oauth_integration.expires_at < datetime.now(UTC):
+            # access token has expired, refresh it
+            refreshed_token_response = self.refresh_access_token(
+                oauth_integration.refresh_token
+            )
+            oauth_integration.access_token = refreshed_token_response["access_token"]
+            oauth_integration.expires_at = datetime.now(UTC) + timedelta(
+                seconds=refreshed_token_response["expires_in"]
+            )
+            await self.store_access_token(
+                access_token=oauth_integration.access_token,
+                integration_type=oauth_integration.integration,
+                expires_at=oauth_integration.expires_at,
+                current_user=current_user,
+                db=db,
+            )
+        else:
+            # access token is valid
+            return True
+        return False
+
+
+google_calendar_oauth = GoogleIntegrationOAuth(
     GoogleConfig(
         client_id=settings.google_client_id,
         client_secret=settings.google_client_secret,
         redirect_uri=settings.google_oauth_redirect_uri,
         scopes=[
-            "openid",
-            "https://www.googleapis.com/auth/userinfo.email",
-            "https://www.googleapis.com/auth/userinfo.profile",
+            "https://www.googleapis.com/auth/calendar",
         ],
     ),
-    Integration.IDENTITY,
+    Integration.CALENDAR,
+)
+
+google_drive_oauth = GoogleIntegrationOAuth(
+    GoogleConfig(
+        client_id=settings.google_client_id,
+        client_secret=settings.google_client_secret,
+        redirect_uri=settings.google_oauth_redirect_uri,
+        scopes=[
+            "https://www.googleapis.com/auth/drive",
+        ],
+    ),
+    Integration.DRIVE,
+)
+
+google_gmail_oauth = GoogleIntegrationOAuth(
+    GoogleConfig(
+        client_id=settings.google_client_id,
+        client_secret=settings.google_client_secret,
+        redirect_uri=settings.google_oauth_redirect_uri,
+        scopes=[
+            "https://www.googleapis.com/auth/gmail",
+        ],
+    ),
+    Integration.GMAIL,
 )

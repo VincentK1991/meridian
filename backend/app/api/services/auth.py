@@ -6,17 +6,20 @@ from jose import jwt
 from app.api.types.users import User
 from app.config import settings
 from app.connectors.databases import get_postgres
+from app.connectors.postgres import PostgreSQLConnector
 
 
 async def get_current_user(
-    request: Request, response: Response, db=Depends(get_postgres)
+    request: Request,
+    response: Response,
+    db: PostgreSQLConnector = Depends(get_postgres),
 ):
     """
     Dependency function to validate JWT token and retrieve current user.
 
     Args:
         token (str): JWT token from request
-        db: MongoDB database connection
+        db: Postgres database connection
 
     Returns:
         dict: User document from database
@@ -30,7 +33,7 @@ async def get_current_user(
        a. Extracts token from request
        b. Verifies token signature using our secret key
        c. Extracts user email from token
-       d. Looks up user in MongoDB
+       d. Looks up user in Postgres
     3. If anything fails, user isn't authenticated
     4. Returns user data if successful
     """

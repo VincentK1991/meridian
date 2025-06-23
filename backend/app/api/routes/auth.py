@@ -4,8 +4,10 @@ from pydantic import BaseModel
 from app.api.services import auth
 from app.api.services.auth import get_current_user
 from app.api.types.custom_types import UUIDStr
+from app.api.types.users import User
 from app.connectors.databases import get_postgres
-from app.oauth.google import google_profile_oauth
+from app.connectors.postgres import PostgreSQLConnector
+from app.oauth.google_identity import google_profile_oauth
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -47,7 +49,7 @@ async def get_google_auth_url():
 async def google_auth_callback(
     response: Response,
     callback_data: GoogleCallback,
-    db=Depends(get_postgres),
+    db: PostgreSQLConnector = Depends(get_postgres),
 ):
     """
     Handles Google OAuth callback, validates tokens, and creates user session.
@@ -89,7 +91,9 @@ async def google_auth_callback(
 
 
 @router.get("/me", response_model=CurrentUserResponse)
-async def refresh_me(current_user=Depends(get_current_user)):
+async def refresh_me(
+    current_user: User = Depends(get_current_user),
+):
     """
     Example of protected endpoint.
     1. Frontend includes JWT token in cookies
