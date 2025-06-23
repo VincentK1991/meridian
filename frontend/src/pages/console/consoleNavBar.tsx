@@ -17,7 +17,7 @@ export default function ConsoleNavBar({ activeView, onViewChange }: ConsoleNavBa
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navItems = [
     { name: 'Session', link: '#session' },
-    { name: 'Quick Actions', link: '#actions' },
+    { name: 'Connection', link: '#connection' },
     { name: 'Status', link: '#status' },
     { name: 'Profile', link: '#profile' },
   ];

@@ -5,7 +5,7 @@ import ActiveSession from '../../components/chatSession/ActiveSession';
 import SessionTabs from '../../components/chatSession/SessionTabs';
 import ConsoleNavBar from './consoleNavBar';
 import Header from './header';
-import QuickActions from '../../components/quickAction/quickAction';
+import Connection from '../../components/connection/connection';
 import Status from '../../components/status/status';
 import Profile from '../../components/profile/profile';
 
@@ -80,8 +80,8 @@ export default function ConsolePage() {
           </div>
         );
 
-      case 'actions':
-        return <QuickActions />;
+      case 'connection':
+        return <Connection />;
 
       case 'status':
         return <Status sessionCount={sortedSessions.length} />;
