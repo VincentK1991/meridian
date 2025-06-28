@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useInfiniteSessionsFlat, useSessionMutations } from '../../hooks/useInfiniteSession';
+import { SessionDeleteConfirmationModal } from './SessionDeleteConfirmationModal';
 
 interface InfiniteSessionTabsProps {
     activeSessionId: string;
@@ -26,7 +27,8 @@ export default function InfiniteSessionTabs({
     limit = 10
 }: InfiniteSessionTabsProps) {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [sessionToDelete, setSessionToDelete] = useState<{ id: string; title: string } | null>(null);
 
     const {
         sessions,
@@ -38,7 +40,7 @@ export default function InfiniteSessionTabs({
         totalSessions
     } = useInfiniteSessionsFlat(userId, limit);
 
-    const { createSession, deleteSession } = useSessionMutations();
+    const { createSession } = useSessionMutations();
 
     // Intersection Observer for infinite scrolling
     const observerRef = useRef<IntersectionObserver | null>(null);
@@ -78,26 +80,30 @@ export default function InfiniteSessionTabs({
         }
     };
 
-    const handleDeleteClick = async (sessionId: string, sessionTitle: string) => {
-        const confirmed = window.confirm(`Are you sure you want to delete "${sessionTitle}"?`);
-        if (!confirmed) return;
+    const handleDeleteClick = (sessionId: string, sessionTitle: string) => {
+        setSessionToDelete({ id: sessionId, title: sessionTitle });
+        setDeleteModalOpen(true);
+    };
 
-        try {
-            setDeletingSessionId(sessionId);
-            await deleteSession.mutateAsync(sessionId);
+    const handleDeleteSuccess = () => {
+        if (!sessionToDelete) return;
 
-            // If the deleted session was active, select the first available session
-            if (sessionId === activeSessionId && sessions.length > 1) {
-                const remainingSessions = sessions.filter(s => s.id !== sessionId);
-                if (remainingSessions.length > 0) {
-                    onSessionSelect(remainingSessions[0].id);
-                }
+        // If the deleted session was active, select the first available session
+        if (sessionToDelete.id === activeSessionId && sessions.length > 1) {
+            const remainingSessions = sessions.filter(s => s.id !== sessionToDelete.id);
+            if (remainingSessions.length > 0) {
+                onSessionSelect(remainingSessions[0].id);
             }
-        } catch (error) {
-            console.error('Failed to delete session:', error);
-        } finally {
-            setDeletingSessionId(null);
         }
+
+        // Close modal and reset state
+        setDeleteModalOpen(false);
+        setSessionToDelete(null);
+    };
+
+    const handleCancelDelete = () => {
+        setDeleteModalOpen(false);
+        setSessionToDelete(null);
     };
 
     // Error state
@@ -168,7 +174,6 @@ export default function InfiniteSessionTabs({
                                             ? 'active text-indigo-800 border-indigo-400'
                                             : 'text-zinc-700/90 border-transparent hover:text-indigo-800 hover:border-white/30'
                                         }
-                                        ${deletingSessionId === session.id ? 'opacity-50 pointer-events-none' : ''}
                                     `}
                                     onClick={() => onSessionSelect(session.id)}
                                 >
@@ -177,16 +182,12 @@ export default function InfiniteSessionTabs({
                                             {session.title || `Session ${session.id.slice(0, 8)}...`}
                                         </span>
                                         <div className="flex items-center gap-1">
-                                            {deletingSessionId === session.id && (
-                                                <div className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" />
-                                            )}
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleDeleteClick(session.id, session.title);
                                                 }}
-                                                disabled={deletingSessionId === session.id}
-                                                className="text-zinc-700/60 hover:text-red-400 transition-colors ml-2 hover:bg-red-500/20 rounded px-1 disabled:opacity-50"
+                                                className="text-zinc-700/60 hover:text-red-400 transition-colors ml-2 hover:bg-red-500/20 rounded px-1"
                                                 title="Delete session"
                                             >
                                                 ×
@@ -230,6 +231,15 @@ export default function InfiniteSessionTabs({
                     </div>
                 )}
             </div>
+
+            {/* Delete Confirmation Modal */}
+            <SessionDeleteConfirmationModal
+                isOpen={deleteModalOpen}
+                onClose={handleCancelDelete}
+                sessionId={sessionToDelete?.id || ''}
+                sessionTitle={sessionToDelete?.title}
+                onDeleteSuccess={handleDeleteSuccess}
+            />
         </div>
     );
 }
