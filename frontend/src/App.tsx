@@ -5,6 +5,7 @@ import ConsolePage from "./pages/console/console";
 import GoogleCallbackHandler from "./components/GoogleCallbackHandler";
 import ProtectedRoute from "./components/ProtectedRoute";
 import "./App.css";
+import OAuthConnectionCallbackHandler from './components/connection/oauthConnectionCallbackHandler';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -36,6 +37,9 @@ function App() {
 
           {/* OAuth callback handler */}
           <Route path="/auth/callback" element={<GoogleCallbackHandler />} />
+
+          {/* OAuth connection callback handler */}
+          <Route path="/integration/google/callback" element={<OAuthConnectionCallbackHandler />} />
         </Routes>
       </Router>
     </QueryClientProvider>

@@ -56,7 +56,7 @@ async def delete_session(session_id: str, db: asyncpg.Connection) -> bool:
 
 async def get_all_sessions(user_id: str, db: asyncpg.Connection) -> list[Session]:
     query = """
-        SELECT id, s.create_time, s.update_time, title
+        SELECT id, s.user_id, s.create_time, s.update_time, title
         FROM sessions AS s
         LEFT JOIN users AS u
         ON uuid(s.user_id) = u.user_id
@@ -67,9 +67,35 @@ async def get_all_sessions(user_id: str, db: asyncpg.Connection) -> list[Session
     return [Session(**row) for row in result]
 
 
-async def rename_session(
-    session_id: str, title: str, db: asyncpg.Connection
+async def get_paginated_sessions(
+    user_id: str, cursor_time: datetime, limit: int, db: asyncpg.Connection
 ) -> list[Session]:
+    query = """
+        SELECT id, s.user_id, s.create_time, s.update_time, title
+        FROM sessions AS s
+        LEFT JOIN users AS u
+        ON uuid(s.user_id) = u.user_id
+        WHERE u.user_id = $1 AND s.is_deleted = FALSE AND s.update_time < $2
+        ORDER BY s.update_time DESC, s.id DESC
+        LIMIT $3
+        """
+    result = await db.fetch(query, user_id, cursor_time, limit)
+    return [Session(**row) for row in result]
+
+
+async def get_session_by_id(session_id: str, db: asyncpg.Connection) -> Session | None:
+    query = """
+        SELECT id, user_id, create_time, update_time, title
+        FROM sessions
+        WHERE id = $1 AND is_deleted = FALSE
+        """
+    result = await db.fetchrow(query, session_id)
+    if result:
+        return Session(**result)
+    return None
+
+
+async def rename_session(session_id: str, title: str, db: asyncpg.Connection) -> bool:
     query = """
         UPDATE sessions
         SET title = $2, update_time = $3

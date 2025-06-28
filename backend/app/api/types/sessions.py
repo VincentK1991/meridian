@@ -10,6 +10,10 @@ class SessionCreate(BaseModel):
     session_id: UUIDStr
 
 
+class SessionUpdate(BaseModel):
+    title: str
+
+
 class SessionDelete(BaseModel):
     session_id: UUIDStr
     message: str
@@ -17,6 +21,7 @@ class SessionDelete(BaseModel):
 
 class Session(BaseModel):
     id: UUIDStr
+    user_id: UUIDStr
     create_time: datetime
     update_time: datetime
     title: str

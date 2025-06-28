@@ -1,8 +1,7 @@
 import { useCurrentUser, useLogout } from '../../hooks/useAuth';
-import { useSessions } from '../../hooks/useSession';
 import { useEffect, useState } from 'react';
 import ActiveSession from '../../components/chatSession/ActiveSession';
-import SessionTabs from '../../components/chatSession/SessionTabs';
+import InfiniteSessionTabs from '../../components/chatSession/InfiniteSessionTabs';
 import ConsoleNavBar from './consoleNavBar';
 import Header from './header';
 import Connection from '../../components/connection/connection';
@@ -11,22 +10,9 @@ import Profile from '../../components/profile/profile';
 
 export default function ConsolePage() {
   const { data: user, isLoading, error } = useCurrentUser();
-  const { data: sessions, isLoading: sessionsLoading } = useSessions(user?.user_id || '');
   const [activeSessionId, setActiveSessionId] = useState<string>('');
   const [activeView, setActiveView] = useState<string>('session');
   const logout = useLogout();
-
-  // Sort sessions by update_time (most recent first) and set active session
-  const sortedSessions = sessions
-    ? [...sessions].sort((a, b) => new Date(b.update_time).getTime() - new Date(a.update_time).getTime())
-    : [];
-
-  // Set the first session as active when sessions load
-  useEffect(() => {
-    if (sortedSessions.length > 0 && !activeSessionId) {
-      setActiveSessionId(sortedSessions[0].id);
-    }
-  }, [sortedSessions, activeSessionId]);
 
   useEffect(() => {
     console.log('Console page mounted, user data:', user);
@@ -37,17 +23,16 @@ export default function ConsolePage() {
       case 'session':
         return (
           <div className="liquid-glass-session h-[calc(100vh-200px)] flex overflow-hidden">
-            {/* Session Tabs */}
-            <SessionTabs
-              sessions={sortedSessions}
+            {/* Session Tabs with Infinite Scrolling */}
+            <InfiniteSessionTabs
               activeSessionId={activeSessionId}
               onSessionSelect={setActiveSessionId}
               onSessionClose={(sessionId) => {
                 // Handle session close logic here
                 console.log('Close session:', sessionId);
               }}
-              sessionsLoading={sessionsLoading}
               userId={user?.user_id || ''}
+              limit={10}
             />
 
             {/* Chat Content Area */}
@@ -69,7 +54,7 @@ export default function ConsolePage() {
                 ) : (
                   <div className="h-full flex items-center justify-center">
                     <p className="text-gray-400 text-center">
-                      Welcome to Meridian! Your AI assistant is ready to help.
+                      Welcome to Yurt! Your AI assistant is ready to help.
                       <br />
                       <span className="text-sm">Select a session or create a new one to start chatting.</span>
                     </p>
@@ -84,7 +69,7 @@ export default function ConsolePage() {
         return <Connection />;
 
       case 'status':
-        return <Status sessionCount={sortedSessions.length} />;
+        return <Status sessionCount={0} />;
 
       case 'profile':
         return user ? <Profile user={user} /> : null;

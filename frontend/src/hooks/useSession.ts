@@ -1,12 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { sessionApi } from '../api/sessionService';
+import { sessionService } from '../api/sessionService';
 
 export const useSessions = (user_id: string) => {
     // Get sessions from localStorage as initial data
 
     return useQuery({
         queryKey: ['sessions', user_id],
-        queryFn: () => sessionApi.getSessions(user_id),
+        queryFn: () => sessionService.listSessions(user_id),
         enabled: !!user_id, // Only fetch when user_id is available
         staleTime: 1 * 60 * 1000, // 1 minutes
         refetchOnWindowFocus: true,
@@ -22,7 +22,7 @@ export const useSession = (session_id: string) => {
         queryKey: ['session', session_id],
         queryFn: () => {
             console.log('useSession queryFn executing for:', session_id);
-            return sessionApi.getSession(session_id);
+            return sessionService.listSessionEvents(session_id);
         },
         enabled: !!session_id, // Only fetch when session_id is available
         //staleTime: 1 * 60 * 1000, // 1 minutes
@@ -47,7 +47,7 @@ export const useCreateSession = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: () => sessionApi.createSession(),
+        mutationFn: () => sessionService.createSession(),
         onSuccess: (data) => {
             console.log('Session created successfully:', data);
             // Invalidate sessions query to refetch the list
@@ -63,7 +63,7 @@ export const useDeleteSession = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (session_id: string) => sessionApi.deleteSession(session_id),
+        mutationFn: (session_id: string) => sessionService.deleteSession(session_id),
         onSuccess: (data) => {
             console.log('Session deleted successfully:', data);
             // Invalidate sessions query to refetch the list

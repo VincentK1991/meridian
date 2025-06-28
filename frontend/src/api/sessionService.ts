@@ -1,35 +1,52 @@
 import { createApiClient } from './baseApiClient';
 import type { EventModel } from '../types/event';
-import type { Session, SessionCreate, SessionDelete } from '../types/session';
+import type { Session, SessionCreate, SessionDelete, SessionUpdate } from '../types/session';
 
-export const sessionApi = {
+const sessionApiClient = createApiClient('/sessions');
+export const sessionService = {
 
-    getSessions: async (user_id: string): Promise<Session[]> => {
-        const response = await createApiClient('/session').get(`/users/${user_id}/sessions`);
-
+    listSessions: async (user_id: string): Promise<Session[]> => {
+        const response = await sessionApiClient.get('');
         // Store sessions in localStorage with user-specific key
         const storageKey = `sessions-${user_id}`;
         localStorage.setItem(storageKey, JSON.stringify(response.data));
-
         return response.data;
     },
-    getSession: async (session_id: string): Promise<EventModel[]> => {
 
-        const apiClient = createApiClient('/session');
+    listPaginatedSessions: async ( cursor?: string, limit: number = 10): Promise<Session[]> => {
+        const params = new URLSearchParams();
+        params.append('limit', limit.toString());
+        if (cursor) {
+            params.append('cursor', cursor);
+        }
 
-        const response = await apiClient.get(`/sessions/${session_id}/events`);
-
+        const response = await sessionApiClient.get(`/paginated?${params.toString()}`);
         return response.data;
     },
 
     createSession: async (): Promise<SessionCreate> => {
-        const response = await createApiClient('/session').post(`/create`);
+        const response = await sessionApiClient.post('');
+        return response.data;
+    },
 
+    getSessionById: async (session_id: string): Promise<Session> => {
+        const response = await sessionApiClient.get(`/${session_id}`);
+        return response.data;
+    },
+
+    listSessionEvents: async (session_id: string): Promise<EventModel[]> => {
+
+        const response = await sessionApiClient.get(`/${session_id}/events`);
+        return response.data;
+    },
+
+    updateSession: async (session_id: string, session_update: SessionUpdate): Promise<Session> => {
+        const response = await sessionApiClient.put(`/${session_id}`, session_update);
         return response.data;
     },
 
     deleteSession: async (session_id: string): Promise<SessionDelete> => {
-        const response = await createApiClient('/session').delete(`/sessions/${session_id}/delete`);
+        const response = await sessionApiClient.delete(`/${session_id}`);
         return response.data;
     },
 
@@ -54,7 +71,7 @@ export const sessionApi = {
     // Helper function to update a specific session in localStorage
     updateSessionInStorage: (user_id: string, sessionId: string, updates: Partial<Session>): void => {
         try {
-            const sessions = sessionApi.getSessionsFromStorage(user_id);
+            const sessions = sessionService.getSessionsFromStorage(user_id);
             const updatedSessions = sessions.map(session =>
                 session.id === sessionId
                     ? { ...session, ...updates, update_time: new Date() }
@@ -71,7 +88,7 @@ export const sessionApi = {
     // Helper function to add a new session to localStorage
     addSessionToStorage: (user_id: string, newSession: Session): void => {
         try {
-            const sessions = sessionApi.getSessionsFromStorage(user_id);
+            const sessions = sessionService.getSessionsFromStorage(user_id);
             const updatedSessions = [newSession, ...sessions]; // Add to top
 
             const storageKey = `sessions-${user_id}`;
@@ -84,7 +101,7 @@ export const sessionApi = {
     // Helper function to remove a session from localStorage
     removeSessionFromStorage: (user_id: string, sessionId: string): void => {
         try {
-            const sessions = sessionApi.getSessionsFromStorage(user_id);
+            const sessions = sessionService.getSessionsFromStorage(user_id);
             const updatedSessions = sessions.filter(session => session.id !== sessionId);
 
             const storageKey = `sessions-${user_id}`;
