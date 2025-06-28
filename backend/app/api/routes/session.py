@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
@@ -35,16 +35,17 @@ async def list_paginated_sessions(
     ),
 ):
     """List paginated sessions for the authenticated user."""
-    # If no cursor provided, use current time as starting point
-    cursor_time = datetime.now()
+    # If no cursor provided, use current UTC time as starting point
+    # This matches how sessions are created with datetime.utcnow()
+    cursor_time = datetime.now(UTC)
     if cursor:
         try:
             # Parse the ISO string and convert to naive datetime (remove timezone info)
-            # since the database column is timestamp without timezone
+            # since the database column is timestamp without timezone (stores UTC)
             parsed_time = datetime.fromisoformat(cursor.replace("Z", "+00:00"))
             cursor_time = parsed_time.replace(tzinfo=None)
         except ValueError:
-            cursor_time = datetime.now()
+            cursor_time = datetime.now(UTC)
 
     sessions_list = await sessions.get_paginated_sessions(
         current_user.user_id, cursor_time, limit, db

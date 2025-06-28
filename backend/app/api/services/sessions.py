@@ -76,7 +76,7 @@ async def get_paginated_sessions(
         LEFT JOIN users AS u
         ON uuid(s.user_id) = u.user_id
         WHERE u.user_id = $1 AND s.is_deleted = FALSE AND s.update_time < $2
-        ORDER BY s.update_time DESC, s.id DESC
+        ORDER BY s.update_time DESC
         LIMIT $3
         """
     result = await db.fetch(query, user_id, cursor_time, limit)
