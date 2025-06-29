@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '../api/authService';
-import { sessionApi } from '../api/sessionService';
+import { sessionService } from '../api/sessionService';
 import { useNavigate } from 'react-router-dom';
 
 // Query keys
@@ -12,15 +12,6 @@ export const AUTH_QUERY_KEYS = {
 // Hook to get current user (protected)
 export const useCurrentUser = () => {
   // Get user data from localStorage as initial data
-  const getUserFromStorage = () => {
-    try {
-      const storedUser = localStorage.getItem('user-profile');
-      return storedUser ? JSON.parse(storedUser) : undefined;
-    } catch (error) {
-      console.error('Error parsing user from localStorage:', error);
-      return undefined;
-    }
-  };
 
   return useQuery({
     queryKey: AUTH_QUERY_KEYS.currentUser,
@@ -52,7 +43,7 @@ export const useGoogleCallback = () => {
     mutationFn: authApi.googleCallback,
     retry: false, // Don't retry on failure
     onSuccess: (data) => {
-      console.log('OAuth callback successful, navigating to console');
+      // console.log('OAuth callback successful, navigating to console');
       // Update the current user cache
       queryClient.setQueryData(AUTH_QUERY_KEYS.currentUser, data.user);
       // Navigate to console
@@ -73,9 +64,9 @@ export const useLogout = () => {
 
   return useMutation({
     mutationFn: authApi.logout,
-    onSuccess: (_, __, context) => {
+    onSuccess: () => {
       // Get user data before clearing to clean up sessions
-      const userData = queryClient.getQueryData(AUTH_QUERY_KEYS.currentUser) as any;
+      const userData = queryClient.getQueryData<{user_id: string, id: string}>(AUTH_QUERY_KEYS.currentUser);
       const userId = userData?.user_id || userData?.id;
 
       // Clear all auth-related cache
@@ -87,7 +78,7 @@ export const useLogout = () => {
 
       // Clear sessions from localStorage if we have userId
       if (userId) {
-        sessionApi.clearSessionsFromStorage(userId);
+        sessionService.clearSessionsFromStorage(userId);
       }
 
       // Navigate to signin
@@ -117,12 +108,12 @@ export const useIsAuthenticated = () => {
   const { data: user, isLoading, error } = useCurrentUser();
 
   // Log authentication status for debugging
-  console.log('Authentication status:', {
-    hasUser: !!user,
-    hasError: !!error,
-    isLoading,
-    userEmail: user?.email
-  });
+  // console.log('Authentication status:', {
+  //   hasUser: !!user,
+  //   hasError: !!error,
+  //   isLoading,
+  //   userEmail: user?.email
+  // });
 
   return {
     isAuthenticated: !!user && !error,

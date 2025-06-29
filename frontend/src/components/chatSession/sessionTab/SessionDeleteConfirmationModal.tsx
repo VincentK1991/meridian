@@ -1,5 +1,5 @@
-import { ConfirmationModal } from '../ui/confirmation-modal';
-import { useDeleteSession } from '../../hooks/useSession';
+import { useDeleteSession } from '../../../hooks/useSession';
+import { ConfirmationModal } from '../../ui/confirmation-modal';
 
 interface SessionDeleteConfirmationModalProps {
   isOpen: boolean;

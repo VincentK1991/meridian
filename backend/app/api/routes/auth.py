@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Response
 from pydantic import BaseModel
 
@@ -24,7 +26,7 @@ class CurrentUserResponse(BaseModel):
 
 
 @router.get("/google/url")
-async def get_google_auth_url():
+async def get_google_auth_url() -> dict[str, str]:
     """
     Generates Google OAuth authorization URL for client-side redirect.
 
@@ -49,7 +51,7 @@ async def get_google_auth_url():
 async def google_auth_callback(
     response: Response,
     callback_data: GoogleCallback,
-    db: PostgreSQLConnector = Depends(get_postgres),
+    db: Annotated[PostgreSQLConnector, Depends(get_postgres)],
 ):
     """
     Handles Google OAuth callback, validates tokens, and creates user session.
@@ -92,7 +94,7 @@ async def google_auth_callback(
 
 @router.get("/me", response_model=CurrentUserResponse)
 async def refresh_me(
-    current_user: User = Depends(get_current_user),
+    current_user: Annotated[User, Depends(get_current_user)],
 ):
     """
     Example of protected endpoint.

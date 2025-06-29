@@ -3,9 +3,16 @@ from google.adk.runners import Runner
 from google.adk.sessions import DatabaseSessionService
 from google.genai import types
 
-from app.agents.run_config import run_config
 from app.api.types.Event import EventModel
 from app.config import settings
+from app.multi_agents import (
+    calculator_agent,
+    coding_agent,
+    google_search_agent,
+    graph_search_agent,
+    web_search_agent,
+)
+from app.multi_agents.run_config import run_config
 
 # Example using a local PostgreSQL database:
 db_user = "postgres"
@@ -48,3 +55,27 @@ async def agent_event_stream(
         event_model = EventModel(**event_dict)
         event_model_str = event_model.model_dump_json()
         yield event_model_str
+
+
+def get_agent(agent_name: str):
+    if agent_name == "google_search_agent":
+        return google_search_agent
+    if agent_name == "coding_agent":
+        return coding_agent
+    if agent_name == "calculator_agent":
+        return calculator_agent
+    if agent_name == "graph_search_agent":
+        return graph_search_agent
+    if agent_name == "web_search_agent":
+        return web_search_agent
+    raise ValueError(f"Agent {agent_name} not found")
+
+
+def get_all_agents_names() -> list[str]:
+    return [
+        "google_search_agent",
+        "coding_agent",
+        "calculator_agent",
+        "graph_search_agent",
+        "web_search_agent",
+    ]

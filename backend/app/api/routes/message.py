@@ -4,19 +4,23 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from app.agents.google_search_agent import google_search_agent
-from app.api.services.agent import agent_event_stream
 from app.api.services.auth import get_current_user
+from app.api.services.message import (
+    agent_event_stream,
+    get_all_agents_names,
+)
 from app.api.types.users import User
+from app.multi_agents.google_search_agent import google_search_agent
 
-router = APIRouter(prefix="/agent", tags=["agent"])
+router = APIRouter(prefix="/session/{session_id}/messages", tags=["messages"])
 
 
 class ConversationRequest(BaseModel):
     user_input: str
+    agents: list[str]
 
 
-@router.post("/{session_id}/conversation")
+@router.post("")
 async def conversation_turn(
     session_id: str,
     request: ConversationRequest,
@@ -25,6 +29,7 @@ async def conversation_turn(
     """
     Server-sent event endpoint that streams agent responses
     """
+    print(request)
 
     async def event_stream():
         try:
@@ -54,3 +59,8 @@ async def conversation_turn(
             "Content-Type": "text/event-stream",
         },
     )
+
+
+@router.get("/agents")
+async def get_agents():
+    return get_all_agents_names()

@@ -18,7 +18,7 @@ agents/
 to run the web UI to inspect all of the agents. this will load all of the agents under agents/ folder.
 
 ```bash
-adk web agents --reload
+adk web multi_agents --reload
 ```
 
 this should be available on localhost:8000

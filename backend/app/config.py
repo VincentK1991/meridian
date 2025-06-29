@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     google_client_id: str
     google_client_secret: str
     google_oauth_redirect_uri: str
+    google_integration_redirect_uri: str
     jwt_secret_key: str
     jwt_algorithm: str
     jwt_access_token_expire_minutes: int

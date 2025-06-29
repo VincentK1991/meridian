@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 from app.api.types.users import Integration, OAuthIntegration
 
@@ -12,11 +13,11 @@ class BaseOAuth(ABC):
         pass
 
     @abstractmethod
-    def get_user_info(self, code: str, state: str):
+    def get_user_info(self, code: str, state: str) -> Any:
         pass
 
     @abstractmethod
-    def store_user_info(self):
+    def store_user_info(self, user_info: Any, db: Any) -> Any:
         pass
 
     def deduplicate_integrations(

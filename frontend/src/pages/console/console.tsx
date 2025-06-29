@@ -1,7 +1,6 @@
 import { useCurrentUser, useLogout } from '../../hooks/useAuth';
 import { useEffect, useState } from 'react';
-import ActiveSession from '../../components/chatSession/ActiveSession';
-import InfiniteSessionTabs from '../../components/chatSession/InfiniteSessionTabs';
+import { ChatSessionContainer } from '../../components/chatSession';
 import ConsoleNavBar from './consoleNavBar';
 import Header from './header';
 import Connection from '../../components/connection/connection';
@@ -10,7 +9,6 @@ import Profile from '../../components/profile/profile';
 
 export default function ConsolePage() {
   const { data: user, isLoading, error } = useCurrentUser();
-  const [activeSessionId, setActiveSessionId] = useState<string>('');
   const [activeView, setActiveView] = useState<string>('session');
   const logout = useLogout();
 
@@ -18,51 +16,13 @@ export default function ConsolePage() {
     console.log('Console page mounted, user data:', user);
   }, [user]);
 
-  const renderContent = () => {
+    const renderContent = () => {
     switch (activeView) {
       case 'session':
         return (
-          <div className="liquid-glass-session h-[calc(100vh-200px)] flex overflow-hidden">
-            {/* Session Tabs with Infinite Scrolling */}
-            <InfiniteSessionTabs
-              activeSessionId={activeSessionId}
-              onSessionSelect={setActiveSessionId}
-              onSessionClose={(sessionId) => {
-                // Handle session close logic here
-                console.log('Close session:', sessionId);
-              }}
-              userId={user?.user_id || ''}
-              limit={10}
-            />
-
-            {/* Chat Content Area */}
-            <div className="flex-1 flex flex-col min-w-0 h-full">
-              {/* Chat Header */}
-              <div className="p-4 border-b border-gray-700 flex-shrink-0">
-                <h2 className="text-xl font-semibold text-white">
-                  {activeSessionId
-                    ? `Session ${activeSessionId.slice(0, 8)}...`
-                    : 'AI Assistant'
-                  }
-                </h2>
-              </div>
-
-              {/* Chat Messages Area */}
-              <div className="flex-1 bg-gray-900/50 min-h-0 overflow-hidden">
-                {activeSessionId ? (
-                  <ActiveSession sessionId={activeSessionId} />
-                ) : (
-                  <div className="h-full flex items-center justify-center">
-                    <p className="text-gray-400 text-center">
-                      Welcome to Yurt! Your AI assistant is ready to help.
-                      <br />
-                      <span className="text-sm">Select a session or create a new one to start chatting.</span>
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          <ChatSessionContainer
+            userId={user?.user_id || ''}
+          />
         );
 
       case 'connection':

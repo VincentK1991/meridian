@@ -1,6 +1,6 @@
 from google.adk.agents import Agent
 
-from app.agents.openAI_agents import openai_agent_as_tool, web_search_agent
+from app.multi_agents.openAI_agents import openai_agent_as_tool, web_search_agent
 
 root_agent = Agent(
     model="gemini-2.0-flash",

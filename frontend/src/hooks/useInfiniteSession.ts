@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { sessionService } from '../api/sessionService';
-import type { Session } from '../types/session';
+import type { Session, SessionUpdate } from '../types/session';
 
 export const useInfiniteSessions = (user_id: string, limit: number = 10) => {
     return useInfiniteQuery({
@@ -62,6 +62,21 @@ export const useSessionMutations = () => {
         }
     });
 
+    const updateSession = useMutation({
+        mutationFn: ({ session_id, session_update }: { session_id: string; session_update: SessionUpdate }) =>
+            sessionService.updateSession(session_id, session_update),
+        onSuccess: (data) => {
+            console.log('Session updated successfully:', data);
+            // Invalidate infinite sessions query to refetch
+            queryClient.invalidateQueries({ queryKey: ['sessions', 'infinite'] });
+            // Also invalidate regular sessions query if it exists
+            queryClient.invalidateQueries({ queryKey: ['sessions'] });
+        },
+        onError: (error) => {
+            console.error('Error updating session:', error);
+        }
+    });
+
     const deleteSession = useMutation({
         mutationFn: (session_id: string) => sessionService.deleteSession(session_id),
         onSuccess: (data) => {
@@ -78,6 +93,7 @@ export const useSessionMutations = () => {
 
     return {
         createSession,
+        updateSession,
         deleteSession,
     };
 };

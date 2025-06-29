@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
-import { useGoogleIntegrationCallback } from '../../hooks/useGoogleIntegration';
-import type { GoogleIntegrationType } from '../../api/integrationService';
+import { useSearchParams } from 'react-router-dom';
+import { integrationService, type GoogleIntegrationType } from '../../api/integrationService';
 
 interface CallbackResult {
   success: boolean;
@@ -11,21 +10,57 @@ interface CallbackResult {
 }
 
 export default function OAuthConnectionCallbackHandler() {
-  const { integrationType } = useParams<{ integrationType: GoogleIntegrationType }>();
   const [searchParams] = useSearchParams();
+  const [integrationType, setIntegrationType] = useState<GoogleIntegrationType | null>(null);
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [error, setError] = useState<string | null>(null);
 
-  const callback = useGoogleIntegrationCallback(integrationType!);
-
   useEffect(() => {
     const handleCallback = async () => {
+      let extractedIntegrationType: GoogleIntegrationType | null = null;
+
       try {
         // Extract OAuth parameters from URL
         const code = searchParams.get('code');
         const state = searchParams.get('state');
         const error = searchParams.get('error');
         const errorDescription = searchParams.get('error_description');
+
+        // Extract integration type from state parameter
+        if (state) {
+          try {
+            const stateData = JSON.parse(state);
+            extractedIntegrationType = stateData.integration_type as GoogleIntegrationType;
+            setIntegrationType(extractedIntegrationType);
+          } catch (stateError) {
+            console.error('Failed to parse state parameter:', stateError);
+            const errorMsg = 'Invalid state parameter';
+            setError(errorMsg);
+            setStatus('error');
+
+            if (window.opener) {
+              window.opener.postMessage({
+                type: 'OAUTH_CALLBACK',
+                result: { success: false, integrationType: null, error: errorMsg }
+              }, '*');
+            }
+            return;
+          }
+        }
+
+        if (!extractedIntegrationType) {
+          const errorMsg = 'Integration type not found in state parameter';
+          setError(errorMsg);
+          setStatus('error');
+
+          if (window.opener) {
+            window.opener.postMessage({
+              type: 'OAUTH_CALLBACK',
+              result: { success: false, integrationType: null, error: errorMsg }
+            }, '*');
+          }
+          return;
+        }
 
         // Check for OAuth errors
         if (error) {
@@ -36,7 +71,7 @@ export default function OAuthConnectionCallbackHandler() {
           // Send error to parent window
           const result: CallbackResult = {
             success: false,
-            integrationType: integrationType!,
+            integrationType: extractedIntegrationType!,
             error: errorMsg
           };
 
@@ -54,7 +89,7 @@ export default function OAuthConnectionCallbackHandler() {
 
           const result: CallbackResult = {
             success: false,
-            integrationType: integrationType!,
+            integrationType: extractedIntegrationType!,
             error: errorMsg
           };
 
@@ -65,14 +100,17 @@ export default function OAuthConnectionCallbackHandler() {
         }
 
         // Send callback data to backend
-        const response = await callback.mutateAsync({ code, state });
+        const response = await integrationService.handleGoogleIntegrationCallback(
+          extractedIntegrationType,
+          { code, state }
+        );
 
         setStatus('success');
 
         // Send success result to parent window
         const result: CallbackResult = {
           success: true,
-          integrationType: integrationType!,
+          integrationType: extractedIntegrationType!,
           data: response
         };
 
@@ -94,7 +132,7 @@ export default function OAuthConnectionCallbackHandler() {
         // Send error to parent window
         const result: CallbackResult = {
           success: false,
-          integrationType: integrationType!,
+          integrationType: extractedIntegrationType!,
           error: errorMsg
         };
 
@@ -104,10 +142,8 @@ export default function OAuthConnectionCallbackHandler() {
       }
     };
 
-    if (integrationType) {
-      handleCallback();
-    }
-  }, [integrationType, searchParams, callback]);
+    handleCallback();
+  }, [searchParams]);
 
   const getIntegrationDisplayName = (type: GoogleIntegrationType) => {
     switch (type) {

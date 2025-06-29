@@ -9,7 +9,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading } = useIsAuthenticated();
   const location = useLocation();
 
-  console.log('ProtectedRoute check:', { isAuthenticated, isLoading, path: location.pathname });
+  // console.log('ProtectedRoute check:', { isAuthenticated, isLoading, path: location.pathname });
 
   // Show loading spinner while checking authentication
   if (isLoading) {
@@ -25,11 +25,11 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   // If not authenticated, redirect to signin
   if (!isAuthenticated) {
-    console.log('User not authenticated, redirecting to signin');
+    // console.log('User not authenticated, redirecting to signin');
     return <Navigate to="/signin" state={{ from: location }} replace />;
   }
 
-  console.log('User authenticated, rendering protected content');
+  // console.log('User authenticated, rendering protected content');
   // If authenticated, render the protected content
   return <>{children}</>;
 }

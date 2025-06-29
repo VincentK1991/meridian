@@ -1,7 +1,7 @@
 from google.adk.agents import Agent
 from google.adk.tools import agent_tool
 
-from app.agents import coding_agent, google_search_agent
+from app.multi_agents import coding_agent, google_search_agent
 
 root_agent = Agent(
     model="gemini-2.0-flash",

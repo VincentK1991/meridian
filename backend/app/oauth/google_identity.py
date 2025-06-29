@@ -57,7 +57,7 @@ class GoogleIdentityOAuth(BaseOAuth):
         )
         return authorization_url
 
-    def get_user_info(self, code: str, state: str) -> dict:
+    def get_user_info(self, code: str, state: str) -> GoogleUserInfo:
         """
         Exchange authorization code for tokens and get user info from Google.
 

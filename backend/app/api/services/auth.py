@@ -1,7 +1,8 @@
 from datetime import UTC, datetime, timedelta
+from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request, Response
-from jose import jwt
+from jose import JWTError, jwt
 
 from app.api.types.users import User
 from app.config import settings
@@ -12,7 +13,7 @@ from app.connectors.postgres import PostgreSQLConnector
 async def get_current_user(
     request: Request,
     response: Response,
-    db: PostgreSQLConnector = Depends(get_postgres),
+    db: Annotated[PostgreSQLConnector, Depends(get_postgres)],
 ):
     """
     Dependency function to validate JWT token and retrieve current user.
@@ -47,7 +48,7 @@ async def get_current_user(
 
     try:
         access_token_payload = verify_token(access_token)
-        user_id: str = access_token_payload.get("user_id")
+        user_id = access_token_payload.get("user_id")
 
         # Check if access token is expired
         exp = access_token_payload.get("exp")
@@ -60,8 +61,8 @@ async def get_current_user(
 
         # Access token is expired, check refresh token
         refresh_token_payload = verify_token(refresh_token)
-        email: str = refresh_token_payload.get("email")
-        user_id: str = refresh_token_payload.get("user_id")
+        email = refresh_token_payload.get("email")
+        user_id = refresh_token_payload.get("user_id")
 
         # Check if refresh token is expired
         exp = refresh_token_payload.get("exp")
@@ -83,7 +84,7 @@ async def get_current_user(
 
         return user_obj
 
-    except jwt.JWTError:
+    except JWTError:
         raise HTTPException(
             status_code=401, detail="Unauthorized invalid access token or refresh token"
         ) from None
@@ -128,7 +129,7 @@ def verify_token(token: str):
             options={"verify_exp": False},
         )
         return payload
-    except jwt.JWTError:
+    except JWTError:
         raise HTTPException(status_code=401, detail="Unauthorized") from None
 
 

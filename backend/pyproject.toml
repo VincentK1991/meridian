@@ -5,6 +5,7 @@ description = ""
 requires-python = ">=3.12"
 dependencies = [
     "asyncpg>=0.30.0",
+    "basedpyright>=1.29.4",
     "faker>=37.4.0",
     "fastapi>=0.115.12",
     "google-adk>=1.2.1",
@@ -81,3 +82,26 @@ dev = [
     "ipykernel>=6.29.5",
     "pre-commit>=4.2.0",
 ]
+
+[tool.basedpyright]
+include = ["app"]
+exclude = ["build", "dist"]
+pythonVersion = "3.12"
+typeCheckingMode = "basic"
+
+# Diagnostic rule customization
+reportMissingImports = "error"
+reportMissingTypeStubs = "warning"
+reportUnusedImport = "warning"
+reportUnusedVariable = "warning"
+reportDuplicateImport = "error"
+reportOptionalSubscript = "error"
+reportOptionalMemberAccess = "error"
+reportOptionalCall = "error"
+reportOptionalIterable = "error"
+reportOptionalContextManager = "error"
+reportOptionalOperand = "error"
+reportUntypedFunctionDecorator = "warning"
+reportUntypedClassDecorator = "warning"
+reportCallIssue = "warning"
+# reportUnknownVariableType = "none"

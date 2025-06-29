@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 
 from app.api.routes.auth import CurrentUserResponse, GoogleCallback
@@ -13,22 +15,22 @@ router = APIRouter(prefix="/integration", tags=["integration"])
 @router.get("/google/{google_integration}/url")
 async def get_google_integration(
     google_integration: str,
-    _: User = Depends(get_current_user),
-):
+    _: Annotated[User, Depends(get_current_user)],
+) -> dict[str, str]:
     authorization_url = await oauth_integration.get_google_integration_url(
         google_integration
     )
     return {"authorization_url": authorization_url}
 
 
-@router.post("/google/{google_integration}/callback",
-    response_model=CurrentUserResponse
+@router.post(
+    "/google/{google_integration}/callback", response_model=CurrentUserResponse
 )
 async def google_integration_callback(
     google_integration: str,
     callback_data: GoogleCallback,
-    current_user: User = Depends(get_current_user),
-    db: PostgreSQLConnector = Depends(get_postgres),
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[PostgreSQLConnector, Depends(get_postgres)],
 ):
     """
     Handles Google OAuth callback, validates tokens, and creates user session.
@@ -58,6 +60,7 @@ async def google_integration_callback(
           - Expiration time
     4. Frontend receives our JWT token for future requests
     """
+    breakpoint()
     user = await oauth_integration.create_store_user_oauth_tokens(
         google_integration=google_integration,
         callback_data=callback_data,
@@ -70,9 +73,9 @@ async def google_integration_callback(
 @router.get("/google/{google_integration}/status")
 async def check_google_integration(
     google_integration: str,
-    current_user: User = Depends(get_current_user),
-    db: PostgreSQLConnector = Depends(get_postgres),
-):
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[PostgreSQLConnector, Depends(get_postgres)],
+) -> dict[str, bool]:
     status = await oauth_integration.check_google_integration(
         google_integration,
         current_user,

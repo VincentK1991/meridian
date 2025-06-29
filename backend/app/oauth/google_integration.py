@@ -34,8 +34,21 @@ class GoogleIntegrationOAuth(BaseOAuth):
         self.integration_type = integration_type
 
     def get_auth_url(self):
+        import json
+        import secrets
+
+        # Create state with integration type and random token for security
+        state_data = {
+            "integration_type": self.integration_type.value,
+            "random": secrets.token_urlsafe(32),
+        }
+        state_string = json.dumps(state_data)
+
         authorization_url, _ = self.flow.authorization_url(
-            access_type="offline", include_granted_scopes=False, prompt="consent"
+            access_type="offline",
+            include_granted_scopes=False,
+            prompt="consent",
+            state=state_string,
         )
         return authorization_url
 
@@ -281,7 +294,7 @@ google_calendar_oauth = GoogleIntegrationOAuth(
     GoogleConfig(
         client_id=settings.google_client_id,
         client_secret=settings.google_client_secret,
-        redirect_uri=settings.google_oauth_redirect_uri,
+        redirect_uri=settings.google_integration_redirect_uri,
         scopes=[
             "https://www.googleapis.com/auth/calendar",
         ],
@@ -293,7 +306,7 @@ google_drive_oauth = GoogleIntegrationOAuth(
     GoogleConfig(
         client_id=settings.google_client_id,
         client_secret=settings.google_client_secret,
-        redirect_uri=settings.google_oauth_redirect_uri,
+        redirect_uri=settings.google_integration_redirect_uri,
         scopes=[
             "https://www.googleapis.com/auth/drive",
         ],
@@ -305,7 +318,7 @@ google_gmail_oauth = GoogleIntegrationOAuth(
     GoogleConfig(
         client_id=settings.google_client_id,
         client_secret=settings.google_client_secret,
-        redirect_uri=settings.google_oauth_redirect_uri,
+        redirect_uri=settings.google_integration_redirect_uri,
         scopes=[
             "https://www.googleapis.com/auth/gmail",
         ],
