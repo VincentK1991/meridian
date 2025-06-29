@@ -1,23 +1,40 @@
-import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useEffect, useState, useRef } from 'react';
+import { useSearchParams, useParams } from 'react-router-dom';
 import { integrationService, type GoogleIntegrationType } from '../../api/integrationService';
 
 interface CallbackResult {
   success: boolean;
   integrationType: GoogleIntegrationType;
   error?: string;
-  data?: any;
+  data?: unknown;
 }
 
 export default function OAuthConnectionCallbackHandler() {
   const [searchParams] = useSearchParams();
-  const [integrationType, setIntegrationType] = useState<GoogleIntegrationType | null>(null);
+  const { integration_type } = useParams<{ integration_type: GoogleIntegrationType }>();
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [error, setError] = useState<string | null>(null);
+  const hasProcessedRef = useRef(false);
+
+  console.log('OAuthConnectionCallbackHandler component loaded');
+  console.log('Current URL:', window.location.href);
 
   useEffect(() => {
-    const handleCallback = async () => {
-      let extractedIntegrationType: GoogleIntegrationType | null = null;
+    console.log('useEffect triggered - hasProcessedRef.current:', hasProcessedRef.current);
+    console.log('useEffect dependencies - integration_type:', integration_type, 'searchParams:', searchParams.toString());
+
+    // Prevent double execution
+    if (hasProcessedRef.current) {
+      console.log('OAuth callback already processed, skipping');
+      return;
+    }
+        const handleCallback = async () => {
+      console.log('OAuth callback handler started');
+      console.log('Integration type from URL:', integration_type);
+      console.log('Search params:', searchParams.toString());
+
+      // Mark as processed immediately to prevent duplicate calls
+      hasProcessedRef.current = true;
 
       try {
         // Extract OAuth parameters from URL
@@ -26,37 +43,18 @@ export default function OAuthConnectionCallbackHandler() {
         const error = searchParams.get('error');
         const errorDescription = searchParams.get('error_description');
 
-        // Extract integration type from state parameter
-        if (state) {
-          try {
-            const stateData = JSON.parse(state);
-            extractedIntegrationType = stateData.integration_type as GoogleIntegrationType;
-            setIntegrationType(extractedIntegrationType);
-          } catch (stateError) {
-            console.error('Failed to parse state parameter:', stateError);
-            const errorMsg = 'Invalid state parameter';
-            setError(errorMsg);
-            setStatus('error');
+        console.log('Extracted OAuth params:', { code: code?.substring(0, 10) + '...', state: state?.substring(0, 10) + '...', error });
 
-            if (window.opener) {
-              window.opener.postMessage({
-                type: 'OAUTH_CALLBACK',
-                result: { success: false, integrationType: null, error: errorMsg }
-              }, '*');
-            }
-            return;
-          }
-        }
-
-        if (!extractedIntegrationType) {
-          const errorMsg = 'Integration type not found in state parameter';
+        // Validate integration type from URL path
+        if (!integration_type || !['drive', 'calendar', 'gmail'].includes(integration_type)) {
+          const errorMsg = 'Invalid or missing integration type';
           setError(errorMsg);
           setStatus('error');
 
           if (window.opener) {
             window.opener.postMessage({
               type: 'OAUTH_CALLBACK',
-              result: { success: false, integrationType: null, error: errorMsg }
+              result: { success: false, integrationType: integration_type || 'drive', error: errorMsg }
             }, '*');
           }
           return;
@@ -71,7 +69,7 @@ export default function OAuthConnectionCallbackHandler() {
           // Send error to parent window
           const result: CallbackResult = {
             success: false,
-            integrationType: extractedIntegrationType!,
+            integrationType: integration_type,
             error: errorMsg
           };
 
@@ -89,7 +87,7 @@ export default function OAuthConnectionCallbackHandler() {
 
           const result: CallbackResult = {
             success: false,
-            integrationType: extractedIntegrationType!,
+            integrationType: integration_type,
             error: errorMsg
           };
 
@@ -100,22 +98,29 @@ export default function OAuthConnectionCallbackHandler() {
         }
 
         // Send callback data to backend
+        console.log('About to call backend API:', { integration_type, code: code?.substring(0, 10) + '...', state: state?.substring(0, 10) + '...' });
+
         const response = await integrationService.handleGoogleIntegrationCallback(
-          extractedIntegrationType,
+          integration_type,
           { code, state }
         );
 
+        console.log('Backend API response:', response);
         setStatus('success');
 
         // Send success result to parent window
         const result: CallbackResult = {
           success: true,
-          integrationType: extractedIntegrationType!,
+          integrationType: integration_type,
           data: response
         };
 
+        console.log('Sending success message to parent:', result);
         if (window.opener) {
           window.opener.postMessage({ type: 'OAUTH_CALLBACK', result }, '*');
+          console.log('Message sent to parent window');
+        } else {
+          console.warn('No window.opener found - cannot send message to parent');
         }
 
         // Close popup after short delay
@@ -123,16 +128,30 @@ export default function OAuthConnectionCallbackHandler() {
           window.close();
         }, 1500);
 
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('OAuth callback error:', err);
-        const errorMsg = err.response?.data?.message || err.message || 'Failed to process OAuth callback';
+        console.error('Error details:', err);
+
+        let errorMsg = 'Failed to process OAuth callback';
+        if (err instanceof Error) {
+          errorMsg = err.message;
+          // Check for common OAuth errors
+          if (err.message.includes('authorization code') || err.message.includes('invalid_grant')) {
+            errorMsg = 'Authorization code has already been used. Please try connecting again.';
+          }
+        }
+
+        console.error('Error message:', errorMsg);
         setError(errorMsg);
         setStatus('error');
+
+        // Reset processed flag on error to allow potential retry
+        hasProcessedRef.current = false;
 
         // Send error to parent window
         const result: CallbackResult = {
           success: false,
-          integrationType: extractedIntegrationType!,
+          integrationType: integration_type!,
           error: errorMsg
         };
 
@@ -143,7 +162,7 @@ export default function OAuthConnectionCallbackHandler() {
     };
 
     handleCallback();
-  }, [searchParams]);
+  }, []); // Run only once on mount - all values are stable from URL
 
   const getIntegrationDisplayName = (type: GoogleIntegrationType) => {
     switch (type) {
@@ -161,7 +180,7 @@ export default function OAuthConnectionCallbackHandler() {
           <>
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
             <h2 className="text-xl font-semibold text-white mb-2">
-              Connecting {integrationType && getIntegrationDisplayName(integrationType)}
+              Connecting {integration_type && getIntegrationDisplayName(integration_type)}
             </h2>
             <p className="text-white/70">
               Processing your authorization...
@@ -180,7 +199,7 @@ export default function OAuthConnectionCallbackHandler() {
               Successfully Connected!
             </h2>
             <p className="text-white/70 mb-4">
-              {integrationType && getIntegrationDisplayName(integrationType)} has been connected to your account.
+              {integration_type && getIntegrationDisplayName(integration_type)} has been connected to your account.
             </p>
             <p className="text-sm text-white/60">
               This window will close automatically...

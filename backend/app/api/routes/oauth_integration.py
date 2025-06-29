@@ -60,7 +60,6 @@ async def google_integration_callback(
           - Expiration time
     4. Frontend receives our JWT token for future requests
     """
-    breakpoint()
     user = await oauth_integration.create_store_user_oauth_tokens(
         google_integration=google_integration,
         callback_data=callback_data,

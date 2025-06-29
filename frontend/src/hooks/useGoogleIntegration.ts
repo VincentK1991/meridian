@@ -138,21 +138,29 @@ export const useGoogleIntegrationPopup = (integrationType: GoogleIntegrationType
     onSuccess: (result) => {
       console.log(`${integrationType} popup OAuth successful:`, result);
 
-      // Invalidate and refetch the status for this integration
-      queryClient.invalidateQueries({
-        queryKey: GOOGLE_INTEGRATION_QUERY_KEYS.status(integrationType),
-      });
+      if (result.success && result.data) {
+        // The callback handler already called the backend API successfully
+        // Now we just need to update the cache and invalidate queries
+        console.log(`${integrationType} integration completed successfully:`, result.data);
 
-      // Invalidate all statuses to refresh the overview
-      queryClient.invalidateQueries({
-        queryKey: GOOGLE_INTEGRATION_QUERY_KEYS.statuses(),
-      });
+        // Invalidate and refetch the status for this integration
+        queryClient.invalidateQueries({
+          queryKey: GOOGLE_INTEGRATION_QUERY_KEYS.status(integrationType),
+        });
 
-      // Update the status cache optimistically
-      queryClient.setQueryData(
-        GOOGLE_INTEGRATION_QUERY_KEYS.status(integrationType),
-        { status: 'connected' }
-      );
+        // Invalidate all statuses to refresh the overview
+        queryClient.invalidateQueries({
+          queryKey: GOOGLE_INTEGRATION_QUERY_KEYS.statuses(),
+        });
+
+        // Update the status cache optimistically
+        queryClient.setQueryData(
+          GOOGLE_INTEGRATION_QUERY_KEYS.status(integrationType),
+          { status: 'connected' }
+        );
+      } else {
+        console.error(`${integrationType} integration failed:`, result);
+      }
     },
     onError: (error) => {
       console.error(`${integrationType} popup OAuth failed:`, error);

@@ -26,7 +26,6 @@ async def create_store_user_oauth_tokens(
     current_user: User,
     db: PostgreSQLConnector,
 ):
-    breakpoint()
     if google_integration == "calendar":
         oauth_integration_strategy = google_calendar_oauth
     elif google_integration == "drive":
@@ -35,13 +34,11 @@ async def create_store_user_oauth_tokens(
         oauth_integration_strategy = google_gmail_oauth
     else:
         raise HTTPException(status_code=400, detail="Invalid Google integration")
-    breakpoint()
-    google_user_info = oauth_integration_strategy.get_user_info(
+    google_oauth_tokens = oauth_integration_strategy.get_user_info(
         callback_data.code, callback_data.state
     )
-    breakpoint()
     user = await oauth_integration_strategy.store_user_info(
-        user_info=google_user_info,
+        oauth_tokens=google_oauth_tokens,
         current_user=current_user,
         db=db,
     )

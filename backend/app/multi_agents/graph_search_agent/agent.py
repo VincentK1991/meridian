@@ -20,7 +20,6 @@ async def graph_search_tool(query: str, tool_context: ToolContext) -> str:
     """
     neo4j_config_str = tool_context.state.get("user:neo4j_config")
     neo4j_config = Neo4jConfig.model_validate_json(neo4j_config_str)
-    breakpoint()
     if not neo4j_config:
         raise ValueError("Neo4j config not found")
 

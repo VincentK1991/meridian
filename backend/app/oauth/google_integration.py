@@ -1,15 +1,22 @@
 from datetime import UTC, datetime, timedelta
 
-from google.auth.transport import requests
-from google.oauth2 import id_token
 from google_auth_oauthlib.flow import Flow
+from pydantic import BaseModel
 
 from app.api.types.users import Integration, OAuthIntegration, User
 from app.config import settings
 from app.connectors.postgres import PostgreSQLConnector
 from app.oauth.base_oauth import BaseOAuth
 
-from .google_identity import GoogleConfig, GoogleUserInfo
+from .google_identity import GoogleConfig
+
+
+class GoogleOauthTokens(BaseModel):
+    access_token: str
+    refresh_token: str
+    expires_at: datetime
+    token_type: str
+    scopes: list[str]
 
 
 class GoogleIntegrationOAuth(BaseOAuth):
@@ -34,21 +41,10 @@ class GoogleIntegrationOAuth(BaseOAuth):
         self.integration_type = integration_type
 
     def get_auth_url(self):
-        import json
-        import secrets
-
-        # Create state with integration type and random token for security
-        state_data = {
-            "integration_type": self.integration_type.value,
-            "random": secrets.token_urlsafe(32),
-        }
-        state_string = json.dumps(state_data)
-
         authorization_url, _ = self.flow.authorization_url(
             access_type="offline",
             include_granted_scopes=False,
             prompt="consent",
-            state=state_string,
         )
         return authorization_url
 
@@ -82,46 +78,39 @@ class GoogleIntegrationOAuth(BaseOAuth):
             google_tokens = flow.fetch_token(code=code)
             credentials = flow.credentials
 
-            # Verify and decode the ID token to get user info
-            id_info = id_token.verify_oauth2_token(
-                credentials.id_token, requests.Request(), self.config.client_id
-            )
-
             # Return user info and tokens
-            return GoogleUserInfo(
-                id=id_info.get("sub"),  # Google user ID
-                email=id_info.get("email"),
-                name=id_info.get("name"),
-                picture=id_info.get("picture"),
-                email_verified=id_info.get("email_verified", False),
+            return GoogleOauthTokens(
                 access_token=google_tokens.get("access_token"),
                 refresh_token=google_tokens.get("refresh_token"),
-                id_token=google_tokens.get("id_token"),
-                expires_at=credentials.expiry.isoformat()
-                if credentials.expiry
+                scopes=google_tokens.get("scope"),
+                token_type=google_tokens.get("token_type"),
+                expires_at=datetime.fromtimestamp(
+                    google_tokens.get("expires_at"), UTC
+                ).isoformat()
+                if google_tokens.get("expires_at")
                 else None,
-                scopes=credentials.granted_scopes
-                if hasattr(credentials, "granted_scopes")
-                else self.config.scopes,
             )
 
         except Exception as e:
             raise Exception(f"Failed to get user info from Google: {e!s}") from e
 
     async def store_user_info(
-        self, user_info: GoogleUserInfo, current_user: User, db: PostgreSQLConnector
+        self,
+        oauth_tokens: GoogleOauthTokens,
+        current_user: User,
+        db: PostgreSQLConnector,
     ):
         try:
             # Prepare OAuth integration data as JSON
             oauth_integration = OAuthIntegration(
                 integration=self.integration_type,
-                scope=user_info.scopes,
-                access_token=user_info.access_token,
-                refresh_token=user_info.refresh_token,
-                expires_at=user_info.expires_at
-                if isinstance(user_info.expires_at, datetime)
-                else datetime.fromisoformat(user_info.expires_at)
-                if user_info.expires_at
+                scope=oauth_tokens.scopes,
+                access_token=oauth_tokens.access_token,
+                refresh_token=oauth_tokens.refresh_token,
+                expires_at=oauth_tokens.expires_at
+                if isinstance(oauth_tokens.expires_at, datetime)
+                else datetime.fromisoformat(oauth_tokens.expires_at)
+                if oauth_tokens.expires_at
                 else None,
                 created_at=datetime.now(UTC),
                 updated_at=datetime.now(UTC),
@@ -146,8 +135,8 @@ class GoogleIntegrationOAuth(BaseOAuth):
                 [
                     i.model_dump(mode="json") for i in updated_integrations
                 ],  # Use mode='json' for datetime serialization
-                user_info.email,
-                user_info.name,  # Update name from Google
+                current_user.email,
+                current_user.name,  # Update name from Google
             )
             return User(**updated_user)
 
@@ -294,7 +283,7 @@ google_calendar_oauth = GoogleIntegrationOAuth(
     GoogleConfig(
         client_id=settings.google_client_id,
         client_secret=settings.google_client_secret,
-        redirect_uri=settings.google_integration_redirect_uri,
+        redirect_uri="http://localhost:5173/integration/google/calendar/callback",
         scopes=[
             "https://www.googleapis.com/auth/calendar",
         ],
@@ -306,7 +295,7 @@ google_drive_oauth = GoogleIntegrationOAuth(
     GoogleConfig(
         client_id=settings.google_client_id,
         client_secret=settings.google_client_secret,
-        redirect_uri=settings.google_integration_redirect_uri,
+        redirect_uri="http://localhost:5173/integration/google/drive/callback",
         scopes=[
             "https://www.googleapis.com/auth/drive",
         ],
@@ -318,7 +307,7 @@ google_gmail_oauth = GoogleIntegrationOAuth(
     GoogleConfig(
         client_id=settings.google_client_id,
         client_secret=settings.google_client_secret,
-        redirect_uri=settings.google_integration_redirect_uri,
+        redirect_uri="http://localhost:5173/integration/google/gmail/callback",
         scopes=[
             "https://www.googleapis.com/auth/gmail",
         ],

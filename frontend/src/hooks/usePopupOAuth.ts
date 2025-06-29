@@ -6,7 +6,7 @@ interface PopupOAuthResult {
   success: boolean;
   integrationType: GoogleIntegrationType;
   error?: string;
-  data?: any;
+  data?: unknown;
 }
 
 interface UsePopupOAuthOptions {
@@ -44,25 +44,34 @@ export const usePopupOAuth = ({
   // Listen for messages from popup
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      console.log('Received message from popup:', event.data);
+
       // Validate origin in production
       // if (event.origin !== window.location.origin) return;
 
       if (event.data.type === 'OAUTH_CALLBACK') {
         const result: PopupOAuthResult = event.data.result;
+        console.log('Processing OAuth callback result:', result);
 
         setIsLoading(false);
 
         if (result.success) {
+          console.log('OAuth success, calling onSuccess callback');
           setError(null);
           onSuccess?.(result);
         } else {
+          console.log('OAuth failed:', result.error);
           setError(result.error || 'OAuth failed');
           onError?.(result.error || 'OAuth failed');
         }
 
         // Clean up
         if (popupRef.current) {
-          popupRef.current.close();
+          try {
+            popupRef.current.close();
+          } catch (e) {
+            console.warn('Could not close popup:', e);
+          }
           popupRef.current = null;
         }
         if (checkClosedIntervalRef.current) {
@@ -84,7 +93,7 @@ export const usePopupOAuth = ({
         setIsLoading(true);
         const result = await authUrlQuery.refetch();
         authUrlData = result.data;
-      } catch (err) {
+      } catch {
         setIsLoading(false);
         setError('Failed to get authorization URL');
         onError?.('Failed to get authorization URL');
@@ -127,20 +136,30 @@ export const usePopupOAuth = ({
 
     popupRef.current = popup;
 
-    // Check if popup was closed manually
+    // Check if popup was closed manually (with COOP error handling)
     checkClosedIntervalRef.current = setInterval(() => {
-      if (popup.closed) {
-        setIsLoading(false);
-        setError('OAuth was cancelled');
-        onError?.('OAuth was cancelled');
-        onClose?.();
+      try {
+        if (popup.closed) {
+          setIsLoading(false);
+          setError('OAuth was cancelled');
+          onError?.('OAuth was cancelled');
+          onClose?.();
 
-        // Clean up
-        popupRef.current = null;
-        if (checkClosedIntervalRef.current) {
-          clearInterval(checkClosedIntervalRef.current);
-          checkClosedIntervalRef.current = null;
+          // Clean up
+          popupRef.current = null;
+          if (checkClosedIntervalRef.current) {
+            clearInterval(checkClosedIntervalRef.current);
+            checkClosedIntervalRef.current = null;
+          }
         }
+      } catch (error) {
+        // Ignore COOP errors - they're expected during cross-origin navigation
+        // The popup will still send a message when the OAuth flow completes
+        if (error instanceof Error && error.message.includes('Cross-Origin-Opener-Policy')) {
+          // Silently ignore COOP errors
+          return;
+        }
+        console.warn('Error checking popup status:', error);
       }
     }, 1000);
 

@@ -39,7 +39,7 @@ function App() {
           <Route path="/auth/callback" element={<GoogleCallbackHandler />} />
 
           {/* OAuth connection callback handler */}
-          <Route path="/integration/google/callback" element={<OAuthConnectionCallbackHandler />} />
+          <Route path="/integration/google/:integration_type/callback" element={<OAuthConnectionCallbackHandler />} />
         </Routes>
       </Router>
     </QueryClientProvider>
