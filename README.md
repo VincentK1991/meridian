@@ -1,4 +1,4 @@
-# Meridian Project
+# Yurt Project
 
 This project is a monorepo containing a FastAPI backend and a React frontend.
 

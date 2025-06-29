@@ -3,6 +3,7 @@ import { MentionsInput, Mention } from 'react-mentions';
 import type { OnChangeHandlerFunc, MentionItem } from 'react-mentions';
 import { useMessages } from '../../hooks/useMessages';
 import { AgentSelector } from './agentSelector';
+import { Orchestration } from '../../types/conversationRequest';
 
 interface ChatInputProps {
     sessionId: string;
@@ -19,6 +20,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     const [plainTextMessage, setPlainTextMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
+    const [selectedOrchestration, setSelectedOrchestration] = useState<Orchestration>(Orchestration.SEQUENTIAL);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const { sendMessage, agents: availableAgents } = useMessages(sessionId);
@@ -60,6 +62,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             await sendMessage({
                 user_input: messageToSend,
                 agents: selectedAgents,
+                orchestration: selectedOrchestration,
             });
         } catch (error) {
             console.error('Failed to send message:', error);
@@ -124,14 +127,29 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
     return (
         <div className="border-t border-gray-700 bg-gray-900/50 p-4">
-            {/* Agent Selector */}
-            <div className="mb-1">
-                <AgentSelector
-                    sessionId={sessionId}
-                    selectedAgents={selectedAgents}
-                    onAgentsChange={handleAgentSelectionChange}
-                    disabled={disabled}
-                />
+            {/* Agent Selector and Orchestration Selector */}
+            <div className="mb-3 flex items-center gap-3">
+                <div className="flex-1">
+                    <AgentSelector
+                        sessionId={sessionId}
+                        selectedAgents={selectedAgents}
+                        onAgentsChange={handleAgentSelectionChange}
+                        disabled={disabled}
+                    />
+                </div>
+                <div className="flex-shrink-0">
+                    <select
+                        id="orchestration-select"
+                        value={selectedOrchestration}
+                        onChange={(e) => setSelectedOrchestration(e.target.value as Orchestration)}
+                        disabled={disabled || isSubmitting}
+                        className="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 p-2.5 min-w-[140px]"
+                    >
+                        <option value={Orchestration.SEQUENTIAL}>Sequential</option>
+                        <option value={Orchestration.PARALLEL}>Parallel</option>
+                        <option value={Orchestration.DEEP_RESEARCH}>Deep Research</option>
+                    </select>
+                </div>
             </div>
 
             <form onSubmit={handleSubmit} className="flex items-end gap-3">
@@ -213,6 +231,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                                         sendMessage({
                                             user_input: messageToSend,
                                             agents: selectedAgents,
+                                            orchestration: selectedOrchestration,
                                         });
                                     } catch (error) {
                                         console.error('Failed to send message:', error);

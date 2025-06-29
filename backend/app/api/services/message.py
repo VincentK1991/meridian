@@ -1,9 +1,10 @@
-from google.adk.agents import Agent, SequentialAgent
+from google.adk.agents import Agent, ParallelAgent, SequentialAgent
 from google.adk.runners import Runner
 from google.adk.sessions import DatabaseSessionService
 from google.genai import types
 
 from app.api.types.Event import EventModel
+from app.api.types.message import Orchestration
 from app.config import settings
 from app.multi_agents import (
     calculator_agent,
@@ -37,9 +38,13 @@ def get_session(app_name: str, user_id: str, session_id: str):
 
 
 async def agent_event_stream(
-    agent_names: list[str], user_id: str, session_id: str, user_input: str
+    agent_names: list[str],
+    orchestration_strategy: Orchestration,
+    user_id: str,
+    session_id: str,
+    user_input: str,
 ):
-    main_agent = prepare_agents(agent_names)
+    main_agent = prepare_agents(agent_names, orchestration_strategy)
     runner = get_runner(main_agent, settings.app_name)
     user_content = types.Content(
         role="user", parts=[types.Part.from_text(text=user_input)]
@@ -82,16 +87,28 @@ def get_all_agents_names() -> list[str]:
     ]
 
 
-def prepare_agents(agent_names: list[str]) -> Agent:
+def prepare_agents(
+    agent_names: list[str], orchestration_strategy: Orchestration
+) -> Agent:
     if len(agent_names) == 0:
         return google_search_agent
     if len(agent_names) == 1:
         return get_agent(agent_names[0])
-    breakpoint()
     sub_agents = [get_agent(agent) for agent in agent_names]
-    sequential_agent = SequentialAgent(
-        name="CodePipelineAgent",
-        sub_agents=sub_agents,
-        description="Executes a sequence of agents in order",
-    )
-    return sequential_agent
+    if orchestration_strategy == Orchestration.SEQUENTIAL:
+        sequential_agent = SequentialAgent(
+            name="SequentialPipelineAgent",
+            sub_agents=sub_agents,
+            description="Executes a sequence of agents in order",
+        )
+        return sequential_agent
+    if orchestration_strategy == Orchestration.PARALLEL:
+        parallel_agent = ParallelAgent(
+            name="ParallelPipelineAgent",
+            sub_agents=sub_agents,
+            description="Executes a sequence of agents in parallel",
+        )
+        return parallel_agent
+    if orchestration_strategy == Orchestration.DEEP_RESEARCH:
+        return google_search_agent  # TODO: implement deep research
+    raise ValueError(f"Orchestration strategy {orchestration_strategy} not found")

@@ -2,21 +2,16 @@ import json
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
 
 from app.api.services.auth import get_current_user
 from app.api.services.message import (
     agent_event_stream,
     get_all_agents_names,
 )
+from app.api.types.message import ConversationRequest
 from app.api.types.users import User
 
 router = APIRouter(prefix="/session/{session_id}/messages", tags=["messages"])
-
-
-class ConversationRequest(BaseModel):
-    user_input: str
-    agents: list[str]
 
 
 @router.post("")
@@ -28,7 +23,6 @@ async def conversation_turn(
     """
     Server-sent event endpoint that streams agent responses
     """
-    print(request)
 
     async def event_stream():
         try:
