@@ -26,9 +26,16 @@ export const useGoogleIntegrationAuthUrl = (integrationType: GoogleIntegrationTy
 export const useGoogleIntegrationStatus = (integrationType: GoogleIntegrationType) => {
   return useQuery({
     queryKey: GOOGLE_INTEGRATION_QUERY_KEYS.status(integrationType),
-    queryFn: () => integrationService.checkGoogleIntegrationStatus(integrationType),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      const response = await integrationService.checkGoogleIntegrationStatus(integrationType);
+      // Convert boolean status to string enum
+      return {
+        status: response.status ? 'connected' : 'disconnected' as 'connected' | 'disconnected' | 'expired',
+        expires_at: response.expires_at
+      };
+    },
+    staleTime: 30 * 60 * 1000, // 30 minutes
+    refetchOnWindowFocus: false,
     retry: 2,
   });
 };
@@ -37,7 +44,14 @@ export const useGoogleIntegrationStatus = (integrationType: GoogleIntegrationTyp
 export const useGoogleIntegrationStatusLazy = (integrationType: GoogleIntegrationType) => {
   return useQuery({
     queryKey: GOOGLE_INTEGRATION_QUERY_KEYS.status(integrationType),
-    queryFn: () => integrationService.checkGoogleIntegrationStatus(integrationType),
+    queryFn: async () => {
+      const response = await integrationService.checkGoogleIntegrationStatus(integrationType);
+      // Convert boolean status to string enum
+      return {
+        status: response.status ? 'connected' : 'disconnected' as 'connected' | 'disconnected' | 'expired',
+        expires_at: response.expires_at
+      };
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: true,
     retry: 2,
@@ -62,12 +76,19 @@ export const useAllGoogleIntegrationStatuses = () => {
       return results.reduce((acc, result, index) => {
         const type = integrationTypes[index];
         if (result.status === 'fulfilled') {
-          acc[type] = result.value;
+          const apiResponse = result.value;
+          // Convert boolean status to string enum
+          const statusString = apiResponse.status ? 'connected' : 'disconnected';
+          acc[type] = {
+            type,
+            status: statusString as 'connected' | 'disconnected' | 'expired',
+            expires_at: apiResponse.expires_at
+          };
         } else {
           acc[type] = { type, status: 'disconnected' as const };
         }
         return acc;
-      }, {} as Record<GoogleIntegrationType, { type: GoogleIntegrationType; status: 'connected' | 'disconnected' | 'expired' }>);
+      }, {} as Record<GoogleIntegrationType, { type: GoogleIntegrationType; status: 'connected' | 'disconnected' | 'expired'; expires_at?: string | null }>);
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: true,
@@ -172,7 +193,7 @@ export const useGoogleIntegrationPopup = (integrationType: GoogleIntegrationType
 
 // Enhanced convenience hooks for specific Google services with lazy loading
 export const useGoogleDriveIntegration = () => {
-  const statusQuery = useGoogleIntegrationStatusLazy('drive');
+  const statusQuery = useGoogleIntegrationStatus('drive');
   const popupOAuth = useGoogleIntegrationPopup('drive');
 
   const checkStatus = () => {
@@ -194,7 +215,7 @@ export const useGoogleDriveIntegration = () => {
 };
 
 export const useGoogleCalendarIntegration = () => {
-  const statusQuery = useGoogleIntegrationStatusLazy('calendar');
+  const statusQuery = useGoogleIntegrationStatus('calendar');
   const popupOAuth = useGoogleIntegrationPopup('calendar');
 
   const checkStatus = () => {
@@ -216,7 +237,7 @@ export const useGoogleCalendarIntegration = () => {
 };
 
 export const useGmailIntegration = () => {
-  const statusQuery = useGoogleIntegrationStatusLazy('gmail');
+  const statusQuery = useGoogleIntegrationStatus('gmail');
   const popupOAuth = useGoogleIntegrationPopup('gmail');
 
   const checkStatus = () => {

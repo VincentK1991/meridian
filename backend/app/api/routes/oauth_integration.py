@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends
 from app.api.routes.auth import CurrentUserResponse, GoogleCallback
 from app.api.services import oauth_integration
 from app.api.services.auth import get_current_user
+from app.api.types.integration import IntegrationStatus
 from app.api.types.users import User
 from app.connectors.databases import get_postgres
 from app.connectors.postgres import PostgreSQLConnector
@@ -69,7 +70,7 @@ async def google_integration_callback(
     return CurrentUserResponse(user_id=user.user_id, email=user.email, name=user.name)
 
 
-@router.get("/google/{google_integration}/status")
+@router.get("/google/{google_integration}/status", response_model=IntegrationStatus)
 async def check_google_integration(
     google_integration: str,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -80,4 +81,4 @@ async def check_google_integration(
         current_user,
         db,
     )
-    return {"status": status}
+    return status

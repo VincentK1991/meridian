@@ -3,6 +3,7 @@ from datetime import UTC, datetime, timedelta
 from google_auth_oauthlib.flow import Flow
 from pydantic import BaseModel
 
+from app.api.types.integration import IntegrationStatus
 from app.api.types.users import Integration, OAuthIntegration, User
 from app.config import settings
 from app.connectors.postgres import PostgreSQLConnector
@@ -203,9 +204,9 @@ class GoogleIntegrationOAuth(BaseOAuth):
                         'updated_at', elem->>'updated_at',
                         'integration', elem->>'integration',
                         'scope', elem->'scope',
-                        'access_token', $3,
+                        'access_token', $3::text,
                         'refresh_token', elem->>'refresh_token',
-                        'expires_at', $4
+                        'expires_at', $4::text
                     )
                     ELSE elem
                 END
@@ -216,10 +217,10 @@ class GoogleIntegrationOAuth(BaseOAuth):
         """  # noqa: S105
         await db.execute(
             update_access_token_query,
-            integration_type,
+            integration_type.value,  # Convert enum to string
             current_user.user_id,
             access_token,
-            expires_at,
+            expires_at.isoformat(),
         )
 
     def store_refresh_token(self, refresh_token: str):
@@ -253,9 +254,11 @@ class GoogleIntegrationOAuth(BaseOAuth):
             google_integration,
         )
         if check_integration:
-            oauth_integration = OAuthIntegration(**check_integration)
+            oauth_integration = OAuthIntegration.model_validate(
+                dict(check_integration)["value"]
+            )
         else:
-            return False
+            return IntegrationStatus(status=False, expires_at=None)
 
         if oauth_integration.expires_at < datetime.now(UTC):
             # access token has expired, refresh it
@@ -275,8 +278,10 @@ class GoogleIntegrationOAuth(BaseOAuth):
             )
         else:
             # access token is valid
-            return True
-        return False
+            return IntegrationStatus(
+                status=True, expires_at=oauth_integration.expires_at
+            )
+        return IntegrationStatus(status=False, expires_at=None)
 
 
 google_calendar_oauth = GoogleIntegrationOAuth(

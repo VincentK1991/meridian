@@ -12,6 +12,11 @@ export interface GoogleIntegrationStatusResponse {
   status: 'connected' | 'disconnected' | 'expired';
 }
 
+export interface GoogleIntegrationStatus {
+  status: boolean;
+  expires_at: string | null;
+}
+
 export interface GoogleIntegrationCallbackResponse {
   user_id: string;
   email: string;
@@ -38,32 +43,10 @@ export const integrationService = {
   },
 
   // Check Google integration status
-  checkGoogleIntegrationStatus: async (integrationType: GoogleIntegrationType): Promise<GoogleIntegrationStatusResponse> => {
+  checkGoogleIntegrationStatus: async (integrationType: GoogleIntegrationType): Promise<GoogleIntegrationStatus> => {
     const response = await integrationApiClient.get(`/google/${integrationType}/status`)
     return response.data
   },
-
-  // Convenience methods for specific integrations
-//   googleDrive: {
-//     getAuthUrl: () => integrationService.getGoogleIntegrationUrl('drive'),
-//     handleCallback: (callbackData: GoogleCallbackRequest) =>
-//       integrationService.handleGoogleIntegrationCallback('drive', callbackData),
-//     checkStatus: () => integrationService.checkGoogleIntegrationStatus('drive'),
-//   },
-
-//   googleCalendar: {
-//     getAuthUrl: () => integrationService.getGoogleIntegrationUrl('calendar'),
-//     handleCallback: (callbackData: GoogleCallbackRequest) =>
-//       integrationService.handleGoogleIntegrationCallback('calendar', callbackData),
-//     checkStatus: () => integrationService.checkGoogleIntegrationStatus('calendar'),
-//   },
-
-//   gmail: {
-//     getAuthUrl: () => integrationService.getGoogleIntegrationUrl('gmail'),
-//     handleCallback: (callbackData: GoogleCallbackRequest) =>
-//       integrationService.handleGoogleIntegrationCallback('gmail', callbackData),
-//     checkStatus: () => integrationService.checkGoogleIntegrationStatus('gmail'),
-//   },
 }
 
 // Legacy export for backwards compatibility
