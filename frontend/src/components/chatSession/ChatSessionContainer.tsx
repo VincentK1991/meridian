@@ -24,7 +24,7 @@ export const ChatSessionContainer: React.FC<ChatSessionContainerProps> = ({
     };
 
     return (
-        <div className={`liquid-glass-session h-[calc(100vh-200px)] flex overflow-hidden ${className}`}>
+        <div className={`liquid-glass-session w-full h-[calc(100vh-200px)] flex overflow-hidden ${className}`}>
             {/* Session Tabs with Infinite Scrolling */}
             <InfiniteSessionTabs
                 activeSessionId={activeSessionId}

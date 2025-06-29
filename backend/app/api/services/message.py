@@ -1,4 +1,4 @@
-from google.adk.agents import Agent
+from google.adk.agents import Agent, SequentialAgent
 from google.adk.runners import Runner
 from google.adk.sessions import DatabaseSessionService
 from google.genai import types
@@ -10,7 +10,7 @@ from app.multi_agents import (
     coding_agent,
     google_search_agent,
     graph_search_agent,
-    web_search_agent,
+    search_using_openai_agent,
 )
 from app.multi_agents.run_config import run_config
 
@@ -37,9 +37,10 @@ def get_session(app_name: str, user_id: str, session_id: str):
 
 
 async def agent_event_stream(
-    agent: Agent, user_id: str, session_id: str, user_input: str
+    agent_names: list[str], user_id: str, session_id: str, user_input: str
 ):
-    runner = get_runner(agent, settings.app_name)
+    main_agent = prepare_agents(agent_names)
+    runner = get_runner(main_agent, settings.app_name)
     user_content = types.Content(
         role="user", parts=[types.Part.from_text(text=user_input)]
     )
@@ -66,8 +67,8 @@ def get_agent(agent_name: str):
         return calculator_agent
     if agent_name == "graph_search_agent":
         return graph_search_agent
-    if agent_name == "web_search_agent":
-        return web_search_agent
+    if agent_name == "search_using_openai_agent":
+        return search_using_openai_agent
     raise ValueError(f"Agent {agent_name} not found")
 
 
@@ -77,5 +78,20 @@ def get_all_agents_names() -> list[str]:
         "coding_agent",
         "calculator_agent",
         "graph_search_agent",
-        "web_search_agent",
+        "search_using_openai_agent",
     ]
+
+
+def prepare_agents(agent_names: list[str]) -> Agent:
+    if len(agent_names) == 0:
+        return google_search_agent
+    if len(agent_names) == 1:
+        return get_agent(agent_names[0])
+    breakpoint()
+    sub_agents = [get_agent(agent) for agent in agent_names]
+    sequential_agent = SequentialAgent(
+        name="CodePipelineAgent",
+        sub_agents=sub_agents,
+        description="Executes a sequence of agents in order",
+    )
+    return sequential_agent

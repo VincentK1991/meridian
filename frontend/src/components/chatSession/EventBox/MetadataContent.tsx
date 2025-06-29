@@ -14,7 +14,7 @@ export const MetadataContent: React.FC<{ metadata: GroundingMetadata }> = ({ met
         </Tab>
         {metadata.search_entry_point?.rendered_content && (
           <Tab isActive={activeMetadataTab === 'rendered'} onClick={() => setActiveMetadataTab('rendered')}>
-            Rendered Content
+            Reference links
           </Tab>
         )}
       </div>

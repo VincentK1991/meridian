@@ -10,7 +10,6 @@ from app.api.services.message import (
     get_all_agents_names,
 )
 from app.api.types.users import User
-from app.multi_agents.google_search_agent import google_search_agent
 
 router = APIRouter(prefix="/session/{session_id}/messages", tags=["messages"])
 
@@ -35,7 +34,7 @@ async def conversation_turn(
         try:
             # Run the agent and stream events
             async for event_string in agent_event_stream(
-                agent=google_search_agent,
+                agent_names=request.agents,
                 user_id=user.user_id,
                 session_id=session_id,
                 user_input=request.user_input,
@@ -47,7 +46,6 @@ async def conversation_turn(
             error_data = {"type": "error", "data": {"message": str(e)}}
             yield f"data: {json.dumps(error_data)}\n\n"
         finally:
-            # Send end-of-stream event
             yield f"data: {json.dumps({'type': 'end', 'data': {}})}\n\n"
 
     return StreamingResponse(

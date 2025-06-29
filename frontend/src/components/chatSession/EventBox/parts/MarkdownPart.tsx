@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 
-export const TextPart: React.FC<{ text: string }> = ({ text }) => (
+export const MarkdownPart: React.FC<{ markdown: string }> = ({ markdown }) => (
   <div className="prose prose-sm prose-invert max-w-none text-left">
     <ReactMarkdown
       components={{
@@ -60,7 +60,7 @@ export const TextPart: React.FC<{ text: string }> = ({ text }) => (
         ),
       }}
     >
-      {text}
+      {markdown}
     </ReactMarkdown>
   </div>
 );
