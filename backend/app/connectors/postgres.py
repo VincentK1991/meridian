@@ -1,3 +1,4 @@
+import asyncio
 import json
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -25,6 +26,13 @@ class PostgreSQLConnector:
                 min_size=5,
                 max_size=20,
                 init=cls._init_connection,
+                command_timeout=60,  # Timeout for individual commands (60 seconds)
+                server_settings={
+                    "application_name": "meridian_backend",
+                    "tcp_keepalives_idle": "300",  # Send keepalive every 5 minutes
+                    "tcp_keepalives_interval": "30",  # Retry every 30 seconds
+                    "tcp_keepalives_count": "3",  # Give up after 3 retries
+                },
             )
         return cls._pool
 
@@ -38,8 +46,14 @@ class PostgreSQLConnector:
     @classmethod
     async def close_pool(cls):
         if cls._pool:
-            await cls._pool.close()
-            cls._pool = None
+            try:
+                await asyncio.wait_for(cls._pool.close(), timeout=10.0)
+            except TimeoutError:
+                print(
+                    "⚠️ Pool close timeout - some connections may be forcefully closed"
+                )
+            finally:
+                cls._pool = None
 
     @classmethod
     @asynccontextmanager

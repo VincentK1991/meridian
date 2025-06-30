@@ -1,11 +1,12 @@
 from datetime import datetime
 from functools import lru_cache
+from pathlib import Path
 
-from base_agents import BaseOpenAPIToolAgentConstructor
 from google.adk.auth import AuthCredential, AuthCredentialTypes, OAuth2Auth
-from utils import get_test_user
 
 from app.api.types.users import User
+from app.multi_agents.base_agents import BaseOpenAPIToolAgentConstructor
+from app.multi_agents.utils import get_test_user
 
 
 def get_google_calendar_instruction(ctx):
@@ -35,7 +36,14 @@ def get_google_calendar_openapi_spec():
     returns:
         str (yaml spec)
     """
-    with open("../../resources/calendar_v3_openapi.yaml") as file:
+    # Get the directory where this file is located
+    current_dir = Path(__file__).parent
+    # Navigate to the resources directory relative to this file
+    resources_path = (
+        current_dir / ".." / ".." / "resources" / "calendar_v3_openapi.yaml"
+    )
+
+    with open(resources_path) as file:
         yaml_spec = file.read()
     return yaml_spec
 
