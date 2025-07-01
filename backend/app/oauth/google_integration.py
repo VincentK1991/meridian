@@ -302,7 +302,8 @@ google_drive_oauth = GoogleIntegrationOAuth(
         client_secret=settings.google_client_secret,
         redirect_uri="http://localhost:5173/integration/google/drive/callback",
         scopes=[
-            "https://www.googleapis.com/auth/drive",
+            "https://www.googleapis.com/auth/drive.readonly",
+            "https://www.googleapis.com/auth/documents.readonly"
         ],
     ),
     Integration.DRIVE,
@@ -314,7 +315,7 @@ google_gmail_oauth = GoogleIntegrationOAuth(
         client_secret=settings.google_client_secret,
         redirect_uri="http://localhost:5173/integration/google/gmail/callback",
         scopes=[
-            "https://www.googleapis.com/auth/gmail",
+            "https://www.googleapis.com/auth/gmail.readonly",
         ],
     ),
     Integration.GMAIL,

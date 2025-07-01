@@ -57,8 +57,9 @@ class GoogleCalendarAgentConstructor(BaseOpenAPIToolAgentConstructor):
         super().__init__(
             user=user,
             name="google_calendar_agent",
-            model="gemini-2.0-flash",
-            description="Manages a Google Calendar using tools generated from an OpenAPI spec.",
+            model="gemini-2.5-flash",
+            description="""Manages a Google Calendar using tools
+            generated from an OpenAPI spec.""",
         )
 
     def get_credentials(self) -> AuthCredential:
@@ -91,4 +92,5 @@ class GoogleCalendarAgentConstructor(BaseOpenAPIToolAgentConstructor):
 
 
 # this is for test only
-root_agent = GoogleCalendarAgentConstructor(get_test_user()).get_agent()
+google_calendar_agent_constructor = GoogleCalendarAgentConstructor(get_test_user())
+root_agent = google_calendar_agent_constructor.get_agent()

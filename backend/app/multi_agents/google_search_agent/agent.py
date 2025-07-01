@@ -3,7 +3,7 @@ from google.adk.tools import google_search
 
 root_agent = Agent(
     name="basic_search_agent",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     description="Agent to answer questions using Google Search.",
     instruction="""I am an agent that helps answer questions
     by searching the internet using Google Search.

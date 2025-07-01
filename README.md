@@ -34,6 +34,16 @@ This project is a monorepo containing a FastAPI backend and a React frontend.
     uv pip install -e .
     ```
 
+5.1  or :
+    ```bash
+    uv add library
+    ```
+
+5.2 or to install dev
+    ```bash
+    uv add --dev library
+    ```
+
 6.  to update the environment from existing uv pyproject.toml
     ```bash
     uv sync

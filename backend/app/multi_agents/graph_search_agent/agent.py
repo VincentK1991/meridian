@@ -44,6 +44,6 @@ root_agent = Agent(
     name="root_agent",
     description="a graph search agent.",
     instruction=agent_instruction,
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     tools=[graph_search_tool],
 )
