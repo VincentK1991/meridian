@@ -79,6 +79,9 @@ indent-style = "space"
 
 [dependency-groups]
 dev = [
+    "google-api-python-client>=2.171.0",
+    "google-auth>=2.40.3",
+    "google-auth-oauthlib>=1.2.2",
     "ipykernel>=6.29.5",
     "pre-commit>=4.2.0",
 ]

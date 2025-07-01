@@ -109,6 +109,9 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "google-api-python-client" },
+    { name = "google-auth" },
+    { name = "google-auth-oauthlib" },
     { name = "ipykernel" },
     { name = "pre-commit" },
 ]
@@ -136,6 +139,9 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "google-api-python-client", specifier = ">=2.171.0" },
+    { name = "google-auth", specifier = ">=2.40.3" },
+    { name = "google-auth-oauthlib", specifier = ">=1.2.2" },
     { name = "ipykernel", specifier = ">=6.29.5" },
     { name = "pre-commit", specifier = ">=4.2.0" },
 ]
