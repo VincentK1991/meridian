@@ -70,7 +70,7 @@ export const AgentSelector: React.FC<AgentSelectorProps> = ({
         </MultiSelectorTrigger>
 
         <MultiSelectorContent>
-          <MultiSelectorList className="bg-gray-800 border-gray-600 max-h-48 overflow-y-auto">
+          <MultiSelectorList className="bg-gray-800 border-gray-600 max-h-48 overflow-y-auto !top-auto bottom-full transform translate-y-[-8px]">
             {availableAgents.map((agent) => (
               <MultiSelectorItem
                 key={agent}

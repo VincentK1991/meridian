@@ -5,24 +5,18 @@ import type { Session, SessionUpdate } from '../types/session';
 export const useInfiniteSessions = (user_id: string, limit: number = 10) => {
     return useInfiniteQuery({
         queryKey: ['sessions', 'infinite', user_id],
-        queryFn: async ({ pageParam }: { pageParam?: string }) => {
-            return sessionService.listPaginatedSessions(pageParam, limit);
+        queryFn: async ({ pageParam = 0 }: { pageParam?: number }) => {
+            return sessionService.listPaginatedSessions(limit, pageParam);
         },
-        initialPageParam: undefined as string | undefined,
-        getNextPageParam: (lastPage: Session[]) => {
+        initialPageParam: 0,
+        getNextPageParam: (lastPage: Session[], allPages: Session[][], lastPageParam: number) => {
             // If the last page is empty or has fewer items than the limit, we've reached the end
             if (!lastPage || lastPage.length === 0 || lastPage.length < limit) {
                 return undefined;
             }
 
-            // Use the update_time of the last session as the cursor for the next page
-            // Important: Don't apply timezone conversion since database stores naive datetime
-            const lastSession = lastPage[lastPage.length - 1];
-            if (!lastSession?.update_time) return undefined;
-
-            // Create cursor without timezone conversion by treating the datetime as UTC
-            const updateTime = new Date(lastSession.update_time + 'Z'); // Add Z to treat as UTC
-            return updateTime.toISOString();
+            // Calculate next offset
+            return lastPageParam + limit;
         },
         enabled: !!user_id,
         staleTime: 1 * 60 * 1000, // 1 minute

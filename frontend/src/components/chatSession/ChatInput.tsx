@@ -20,7 +20,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     const [plainTextMessage, setPlainTextMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
-    const [selectedOrchestration, setSelectedOrchestration] = useState<Orchestration>(Orchestration.SEQUENTIAL);
+    const [selectedOrchestration, setSelectedOrchestration] = useState<Orchestration>(Orchestration.TRIAGE);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const { sendMessage, agents: availableAgents } = useMessages(sessionId);
@@ -62,7 +62,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             await sendMessage({
                 user_input: messageToSend,
                 agents: selectedAgents,
-                orchestration: selectedOrchestration,
+                orchestration_strategy: selectedOrchestration,
             });
         } catch (error) {
             console.error('Failed to send message:', error);
@@ -147,6 +147,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                     >
                         <option value={Orchestration.SEQUENTIAL}>Sequential</option>
                         <option value={Orchestration.PARALLEL}>Parallel</option>
+                        <option value={Orchestration.TRIAGE}>Triage</option>
                         <option value={Orchestration.DEEP_RESEARCH}>Deep Research</option>
                     </select>
                 </div>
@@ -231,7 +232,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                                         sendMessage({
                                             user_input: messageToSend,
                                             agents: selectedAgents,
-                                            orchestration: selectedOrchestration,
+                                            orchestration_strategy: selectedOrchestration,
                                         });
                                     } catch (error) {
                                         console.error('Failed to send message:', error);

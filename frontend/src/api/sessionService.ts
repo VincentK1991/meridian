@@ -13,12 +13,10 @@ export const sessionService = {
         return response.data;
     },
 
-    listPaginatedSessions: async ( cursor?: string, limit: number = 10): Promise<Session[]> => {
+    listPaginatedSessions: async (limit: number = 10, offset: number = 0): Promise<Session[]> => {
         const params = new URLSearchParams();
         params.append('limit', limit.toString());
-        if (cursor) {
-            params.append('cursor', cursor);
-        }
+        params.append('offset', offset.toString());
 
         const response = await sessionApiClient.get(`/paginated?${params.toString()}`);
         return response.data;
